@@ -2,29 +2,37 @@
 
 ## What Works
 
--   Basic chat UI using Next.js and the Vercel `useChat` hook.
--   Backend API endpoint (`/api/chat`) successfully receives requests.
--   API endpoint correctly selects OpenAI API keys based on the requested model (`gpt-4.5-preview`, `gpt-4o`).
--   API endpoint successfully calls the OpenAI API using the `openai` library.
--   API endpoint correctly streams responses back to the frontend in the format required by `useChat`.
--   Chat interaction with OpenAI models is functional.
+-   Basic chat UI restored at `/`.
+-   Backend API endpoint (`/api/chat`) for chat functionality.
+-   API endpoint logic for OpenAI models.
+-   Shadcn UI `auth-form` component added to the project.
+-   Dedicated login page at `/login` displaying the `auth-form`.
+-   Simulated authentication check on `/` redirects unauthenticated users to `/login`.
+-   "Demo Login (Bypass)" button on `/login` allows accessing `/` via `localStorage` flag.
 
 ## What's Left to Build
 
--   Integration logic for other LLM providers (Grok, Claude, etc.).
--   Refactoring the API endpoint to easily accommodate multiple providers.
--   UI elements for potentially provider-specific features or settings.
--   More robust error handling and display on the frontend.
--   Comprehensive testing (unit, integration).
--   (Add other planned features)
+-   Real user authentication logic (backend API, password hashing, session/token management).
+-   Backend API endpoint for handling actual login/signup form submissions.
+-   Database or storage solution for user credentials.
+-   Replace simulated auth check (`localStorage`) with real session validation.
+-   Implement sign-up functionality (UI and backend).
+-   Remove/replace the "Demo Login" bypass.
+-   Integration logic for other LLM providers (Grok, Claude, etc.) - (Post-auth).
+-   Refactoring the API endpoint to easily accommodate multiple providers - (Post-auth).
+-   Comprehensive testing (unit, integration) for auth and chat.
 
 ## Current Status
 
--   Core chat functionality with OpenAI is established.
--   Ready to begin architectural planning and implementation for multi-provider support.
+-   App structure includes a login page (`/login`) and a protected chat page (`/`).
+-   Authentication is currently simulated using `localStorage` and a bypass button.
+-   Chat UI is functional when accessed via the demo login.
+-   Ready to implement real backend authentication.
 
 ## Known Issues
 
--   (None identified in the current chat functionality, but please add any known bugs or limitations).
+-   Authentication is not secure and relies on client-side `localStorage` flag.
+-   Login form submission doesn't perform any actual login.
+-   No sign-up functionality exists.
 
 _This is an initial draft. Please update regularly with completed features, ongoing work, blocking issues, and refined next steps._ 
