@@ -22,7 +22,8 @@ import { useChat } from "ai/react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation';
+import { useSession } from "next-auth/react";
 
 // Define LLM models
 const LLM_MODELS = {
@@ -36,24 +37,20 @@ const LLM_MODELS = {
 const MotionButton = motion(Button);
 
 export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Simulate auth state
   const [files, setFiles] = useState<File[]>([]);
   const [selectedLlm, setSelectedLlm] = useState<{ id: string; name: string } | null>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // --- Authentication Check ---
-  useEffect(() => {
-    // Simulate checking auth status (e.g., from local storage)
-    const loggedIn = localStorage.getItem('demoLoggedIn') === 'true';
-    if (!loggedIn) {
-      router.push('/login');
-    } else {
-      setIsAuthenticated(true);
-    }
-  }, [router]); // Run only once on mount or when router changes
-
+  // --- Use next-auth session --- 
+  const { data: session, status } = useSession({
+    required: true, // Requires session, handles loading state
+    onUnauthenticated() {
+      // Redirect to login page if not authenticated
+      router.push('/login'); 
+    },
+  });
 
   // --- useChat Hook Integration ---
   const {
@@ -63,12 +60,11 @@ export default function Home() {
     handleSubmit: handleChatSubmit,
     isLoading,
     error,
-    // Add other relevant properties from useChat if needed (e.g., setMessages, reload, stop)
   } = useChat({
     api: "/api/chat",
     initialMessages: [],
     body: {
-      model: selectedLlm?.id ?? '', // Pass the ID of the selected LLM
+      model: selectedLlm?.id ?? '', 
     },
     onResponse: (res) => {
       if (!res.ok) {
@@ -84,19 +80,17 @@ export default function Home() {
     onError: (err) => {
       console.error("Chat hook error:", err);
     },
-    // Only enable the hook if authenticated (optional optimization, but safer)
-    // You might need to adjust how `useChat` handles being disabled/enabled if needed.
-    // For now, we initialize it always but render UI conditionally.
   });
 
   // --- Helper Functions ---
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    if (isAuthenticated) { // Only scroll if authenticated and UI is visible
+    // Check session status instead of isAuthenticated state
+    if (status === 'authenticated') { 
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isAuthenticated]);
+  }, [messages, status]); // Depend on status
 
   // Wrapper for PromptInput's onValueChange
   const handlePromptInputChange = (value: string) => {
@@ -132,21 +126,21 @@ export default function Home() {
     e.preventDefault();
     if (!selectedLlm) {
       console.error("Please select a language model first.");
-      // TODO: Add user feedback (toast notification)
       return;
     }
     if (input.trim() || files.length > 0) {
-      handleChatSubmit(e); // Call the useChat hook's submit handler
+      handleChatSubmit(e); 
     }
   };
 
-  // --- Conditional Rendering ---
-  if (!isAuthenticated) {
-    // Return null or a loading indicator while redirecting
-    return null;
+  // --- Conditional Rendering based on session status ---
+  if (status === 'loading') {
+    // Optional: Render a loading spinner or skeleton screen
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
   }
 
-  // --- Render Chat UI if Authenticated ---
+  // If status is 'authenticated', render the main UI
+  // (The onUnauthenticated callback handles the redirect)
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-end p-6 sm:p-12 pb-20">
       {/* Header */}
@@ -162,7 +156,6 @@ export default function Home() {
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none -z-10">
         <TextShimmer
           duration={1.2}
-          // Using #018771 for base and #01A98C for gradient
           className='text-2xl font-medium text-center [--base-color:#018771] [--base-gradient-color:#01A98C] dark:[--base-color:#018771] dark:[--base-gradient-color:#01A98C]'
         >
           {selectedLlm ? selectedLlm.name : "Welcome to your AI Garden"}
@@ -284,7 +277,6 @@ export default function Home() {
                          className={cn(
                            "size-8 relative overflow-hidden focus-visible:outline-none",
                            !selectedLlm &&
-                             // Use new green #018771 and #01A98C for animation
                              "bg-[length:200%_100%] bg-clip-padding [--base-color:#018771] [--base-gradient-color:#01A98C] dark:[--base-color:#018771] dark:[--base-gradient-color:#01A98C] [--bg:linear-gradient(90deg,transparent_40%,var(--base-gradient-color),transparent_60%)] [background-image:var(--bg),linear-gradient(var(--base-color),var(--base-color)) ]"
                          )}
                          animate={!selectedLlm ? {
@@ -297,7 +289,6 @@ export default function Home() {
                          }: {}}
                          disabled={isLoading}
                        >
-                         {/* Always apply new green color to Box icon */}
                          <Box size={20} strokeWidth={1.5} className="text-[#018771]" />
                        </MotionButton>
                      </DropdownMenuTrigger>

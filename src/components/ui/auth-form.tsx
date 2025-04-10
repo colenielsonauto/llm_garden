@@ -10,6 +10,21 @@ import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  className?: string
+}
+
+const Button: React.FC<ButtonProps> = ({ children, className, ...props }) => (
+  <button
+    className={`rounded-md bg-gradient-to-br from-[#018771] to-[#018771] px-4 py-2 text-lg text-zinc-100 dark:text-zinc-100 
+    ring-2 ring-[#018771]/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 
+    transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-[#018771]/70 ${className}`}
+    {...props}
+  >
+    {children}
+  </button>
+)
+
 const AuthForm: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,19 +60,23 @@ const AuthForm: React.FC = () => {
         setIsSignUp(false);
         // Optionally show a success message instead of error
         // setError("Account created! Please sign in."); 
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Signup error:", err);
-        setError(err.message || 'An unexpected error occurred during signup.');
+        let message = 'An unexpected error occurred during signup.';
+        if (err instanceof Error) {
+            message = err.message;
+        }
+        setError(message);
       } finally {
         setIsLoading(false);
       }
     } else {
-      // --- Handle Login using next-auth --- 
+      // --- Handle Login using next-auth (using callbackUrl) ---
       try {
         const result = await signIn('credentials', {
-          redirect: false, // Prevent automatic redirect, handle manually
           email: formData.email,
           password: formData.password,
+          callbackUrl: '/', // Specify desired redirect path on success
         });
 
         if (result?.error) {
@@ -66,15 +85,8 @@ const AuthForm: React.FC = () => {
           // Use a user-friendly message. next-auth might return specific error keys
           // depending on config, or a generic message.
           setError('Invalid email or password.'); 
-        } else if (result?.ok) {
-          // Login successful
-          console.log('Login successful via next-auth');
-          router.push('/'); // Redirect to main chat page
-          // Optionally: router.refresh() if needed to ensure server components update
-        } else {
-            // Handle unexpected non-error cases from signIn
-            setError('An unexpected issue occurred during login.');
-        }
+        } 
+        // No need for router.push here, signIn handles redirect
       } catch (err) {
         // Handle network errors or other issues calling signIn
         console.error("Error calling signIn:", err);
@@ -111,21 +123,6 @@ const AuthForm: React.FC = () => {
     </div>
   )
 }
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  className?: string
-}
-
-const Button: React.FC<ButtonProps> = ({ children, className, ...props }) => (
-  <button
-    className={`rounded-md bg-gradient-to-br from-[#018771] to-[#018771] px-4 py-2 text-lg text-zinc-100 dark:text-zinc-100 
-    ring-2 ring-[#018771]/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 
-    transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-[#018771]/70 ${className}`}
-    {...props}
-  >
-    {children}
-  </button>
-)
 
 const Logo: React.FC = () => (
   <div className="mb-6 flex items-center justify-center">
