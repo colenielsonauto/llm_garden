@@ -6,7 +6,6 @@ import { Box } from "lucide-react"
 // Removed commented out social icons
 import { motion } from "framer-motion"
 import { useTheme } from "next-themes"
-import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 
@@ -29,7 +28,6 @@ const AuthForm: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
