@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       {/* --- START: PRIVACY POLICY CONTENT --- */}
       <div className="prose dark:prose-invert max-w-none">
 
-        <p className="mb-4">Welcome to AI Garden! This Privacy Policy explains how AI Garden ("we," "us," or "our") collects, uses, discloses, and protects your information when you use our website and services (collectively, the "Service").</p>
+        <p className="mb-4">Welcome to AI Garden! This Privacy Policy explains how AI Garden (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) collects, uses, discloses, and protects your information when you use our website and services (collectively, the &quot;Service&quot;).</p>
         <p className="mb-4">Please read this Privacy Policy carefully. By accessing or using our Service, you agree to the terms of this Privacy Policy. If you do not agree, please do not access or use the Service.</p>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3">1. Information We Collect</h2>
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
         <p className="mb-4">We implement reasonable security measures designed to protect your information from unauthorized access, disclosure, alteration, and destruction. This includes hashing passwords and using secure connections. However, no internet transmission or electronic storage is 100% secure, and we cannot guarantee absolute security. You are responsible for maintaining the security of your account credentials.</p>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3">5. Data Retention</h2>
-        <p className="mb-4">We retain your account information for as long as your account is active or as needed to provide you with the Service. We retain optional chat history (if you've opted-in) as described in Section 1(a). We may retain certain information for longer periods as required by law or for legitimate business purposes like security and fraud prevention.</p>
+        <p className="mb-4">We retain your account information for as long as your account is active or as needed to provide you with the Service. We retain optional chat history (if you&apos;ve opted-in) as described in Section 1(a). We may retain certain information for longer periods as required by law or for legitimate business purposes like security and fraud prevention.</p>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3">6. Your Choices and Rights</h2>
         <ul className="list-disc list-inside mb-4 space-y-1">
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
           <li><strong>Cookies:</strong> You can usually instruct your browser to refuse cookies, but this may prevent you from using certain parts of our Service, particularly authentication.</li>
         </ul>
 
-        <h2 className="text-2xl font-semibold mt-6 mb-3">7. Children's Privacy</h2>
+        <h2 className="text-2xl font-semibold mt-6 mb-3">7. Children&apos;s Privacy</h2>
         <p className="mb-4">Our Service is not directed to individuals under the age of 13 (or a higher age threshold depending on the jurisdiction). We do not knowingly collect personal information from children under 13. If we become aware that we have collected personal information from a child under 13, we will take steps to delete such information.</p>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3">8. Changes to This Privacy Policy</h2>

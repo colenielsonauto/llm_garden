@@ -1,8 +1,18 @@
-import NextAuth, { NextAuthOptions } from 'next-auth';
+import NextAuth, { NextAuthOptions, User, Session } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcrypt';
 import clientPromise from '../../../../../lib/mongodb'; // Adjust path as needed
 import { MongoDBAdapter } from "@auth/mongodb-adapter" // Use the adapter
+import { AdapterUser } from 'next-auth/adapters';
+import { ObjectId } from 'mongodb';
+
+interface DbUser {
+  _id: ObjectId;
+  name?: string | null;
+  email?: string | null;
+  password?: string | null;
+}
 
 export const authOptions: NextAuthOptions = {
   // Configure one or more authentication providers
@@ -17,7 +27,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email", placeholder: "jsmith@example.com" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials, req) {
+      async authorize(credentials): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) {
           console.log('Missing credentials');
           return null;
@@ -25,11 +35,11 @@ export const authOptions: NextAuthOptions = {
 
         const client = await clientPromise;
         const db = client.db(); // Use your default DB name if not specified in MONGO_URI
-        const usersCollection = db.collection('users');
+        const usersCollection = db.collection<DbUser>('users');
 
         const user = await usersCollection.findOne({ email: credentials.email });
 
-        if (!user) {
+        if (!user || !user.password) {
           console.log('No user found with email:', credentials.email);
           return null;
         }
@@ -69,7 +79,7 @@ export const authOptions: NextAuthOptions = {
   },
   // Optional callbacks for customizing behavior
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: JWT; user?: User | AdapterUser }) {
       // Persist the user id and name to the token right after signin
       if (user) {
         token.id = user.id;
@@ -77,13 +87,12 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       // Send properties to the client, like an access_token and user id from the token.
-      if (session.user) {
-         // Ensure session.user.id exists and is typed correctly if needed client-side
-        (session.user as any).id = token.id;
-        // If you added name to the jwt callback, you can add it here too
-        session.user.name = token.name as string;
+      if (session.user && token.id) {
+        // Add id and name to the session user object
+        (session.user as { id?: string; name?: string | null; email?: string | null; image?: string | null }).id = token.id as string;
+        (session.user as { id?: string; name?: string | null; email?: string | null; image?: string | null }).name = token.name as string;
       }
       return session;
     },

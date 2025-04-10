@@ -9,7 +9,7 @@ export default function TermsPage() {
       {/* --- START: TERMS CONTENT --- */}
       <div className="prose dark:prose-invert max-w-none">
 
-        <p className="mb-4">Welcome to AI Garden! These Terms and Conditions ("Terms") govern your access to and use of the AI Garden website and services (collectively, the "Service"), operated by AI Garden ("we," "us," or "our").</p>
+        <p className="mb-4">Welcome to AI Garden! These Terms and Conditions (&quot;Terms&quot;) govern your access to and use of the AI Garden website and services (collectively, the &quot;Service&quot;), operated by AI Garden (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;).</p>
         <p className="mb-4">Please read these Terms carefully. By accessing or using the Service, you agree to be bound by these Terms and our Privacy Policy. If you do not agree to these Terms, you may not access or use the Service.</p>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3">1. Acceptance of Terms</h2>
@@ -54,7 +54,7 @@ export default function TermsPage() {
         <h2 className="text-2xl font-semibold mt-6 mb-3">7. Disclaimers Regarding AI Models</h2>
         <ul className="list-disc list-inside mb-4 space-y-1">
           <li><strong>No Guarantee of Accuracy:</strong> The AI models accessed through the Service can make mistakes, provide inaccurate information, or generate biased or offensive content. You should independently verify any critical information received from the AI models.</li>
-          <li><strong>Use "As Is":</strong> The Service and the AI-generated responses are provided "as is" and "as available" without warranties of any kind, either express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, or non-infringement.</li>
+          <li><strong>Use &quot;As Is&quot;:</strong> The Service and the AI-generated responses are provided &quot;as is&quot; and &quot;as available&quot; without warranties of any kind, either express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, or non-infringement.</li>
           <li><strong>No Professional Advice:</strong> Information provided by the AI models does not constitute professional advice (e.g., legal, financial, medical). Always consult with a qualified professional for specific advice.</li>
         </ul>
 
@@ -68,7 +68,7 @@ export default function TermsPage() {
         <p className="mb-4">To the fullest extent permitted by applicable law, in no event shall AI Garden, its affiliates, directors, employees, or agents be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use the Service; (ii) any conduct or content of any third party on the Service (including third-party LLMs); (iii) any content obtained from the Service; and (iv) unauthorized access, use, or alteration of your transmissions or content, whether based on warranty, contract, tort (including negligence), or any other legal theory, whether or not we have been informed of the possibility of such damage.</p>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3">10. Indemnification</h2>
-        <p className="mb-4">You agree to defend, indemnify, and hold harmless AI Garden and its licensee and licensors, and their employees, contractors, agents, officers, and directors, from and against any and all claims, damages, obligations, losses, liabilities, costs or debt, and expenses (including but not limited to attorney's fees), resulting from or arising out of a) your use and access of the Service, by you or any person using your account and password; b) a breach of these Terms, or c) content posted or generated through your use of the Service.</p>
+        <p className="mb-4">You agree to defend, indemnify, and hold harmless AI Garden and its licensee and licensors, and their employees, contractors, agents, officers, and directors, from and against any and all claims, damages, obligations, losses, liabilities, costs or debt, and expenses (including but not limited to attorney&apos;s fees), resulting from or arising out of a) your use and access of the Service, by you or any person using your account and password; b) a breach of these Terms, or c) content posted or generated through your use of the Service.</p>
 
         <h2 className="text-2xl font-semibold mt-6 mb-3">11. Governing Law</h2>
         <p className="mb-4">These Terms shall be governed and construed in accordance with the laws of [Your Jurisdiction - Placeholder, needs legal input], without regard to its conflict of law provisions.</p>

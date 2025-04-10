@@ -44,7 +44,8 @@ export default function Home() {
   const router = useRouter();
 
   // --- Use next-auth session --- 
-  const { data: session, status } = useSession({
+  // Prefix session with underscore if not used directly
+  const { data: _session, status } = useSession({
     required: true, // Requires session, handles loading state
     onUnauthenticated() {
       // Redirect to login page if not authenticated

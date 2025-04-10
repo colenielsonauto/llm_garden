@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { Stream } from 'openai/streaming';
 import { ChatCompletionChunk } from 'openai/resources/chat/completions';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerationConfig, Content, Part } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerationConfig, Content } from '@google/generative-ai';
 
 // Define the expected structure for Grok API stream chunks (adjust if needed based on actual API response)
 interface GrokChatCompletionChunk {
@@ -15,10 +15,10 @@ interface GrokChatCompletionChunk {
   // Add other potential top-level fields if needed, e.g., id, model
 }
 
-// Added type for Gemini API message format
-interface GeminiMessage {
-  role: 'user' | 'model';
-  parts: { text: string }[];
+// Input message structure from the client
+interface InputMessage {
+  role: 'user' | 'assistant' | 'system'; 
+  content: string;
 }
 
 // Remove Edge Runtime
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { messages, model } = body;
+    const { messages, model }: { messages: InputMessage[], model: string } = body;
     requestedModelId = model;
 
     const latestMessageContent = messages?.[messages.length - 1]?.content?.substring(0, 50) + '...' || 'no message content';
@@ -59,28 +59,21 @@ export async function POST(req: NextRequest) {
     // --- API Key and Client Setup ---
     if (requestedModelId === 'gpt-4.5-preview' || requestedModelId === 'gpt-4o') {
         // --- OpenAI Handling ---
-        let openai: OpenAI; // Declare openai here as it's specific to this block
         if (requestedModelId === 'gpt-4.5-preview') {
             selectedApiKey = process.env.OPENAI_API_KEY_4_5;
-            if (!selectedApiKey) {
-                console.error('[API Env Error] API key for gpt-4.5-preview not found.');
-                throw new Error('Configuration error: API key for gpt-4.5-preview missing.');
-            }
-        } else { // gpt-4o
+            if (!selectedApiKey) throw new Error('Config error: OpenAI 4.5 key missing.');
+        } else {
             selectedApiKey = process.env.OPENAI_API_KEY_4O;
-            if (!selectedApiKey) {
-                console.error('[API Env Error] API key for gpt-4o not found.');
-                throw new Error('Configuration error: API key for gpt-4o missing.');
-            }
+            if (!selectedApiKey) throw new Error('Config error: OpenAI 4o key missing.');
         }
         console.log(`[API Key Select] Using OpenAI key for ${requestedModelId}: ${maskApiKey(selectedApiKey)}`);
 
-        openai = new OpenAI({ apiKey: selectedApiKey });
+        const openai = new OpenAI({ apiKey: selectedApiKey });
 
         console.log(`[API Call Start] Calling OpenAI completions with model: ${requestedModelId}...`);
         const stream: Stream<ChatCompletionChunk> = await openai.chat.completions.create({
             model: requestedModelId,
-            messages: messages,
+            messages: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })), 
             stream: true,
         });
         console.log('[API Call Success] OpenAI stream initiated.');
@@ -130,7 +123,7 @@ export async function POST(req: NextRequest) {
         };
         const grokBody = JSON.stringify({
             model: 'grok-2', // Or potentially 'grok-beta' if 'grok-2' fails
-            messages: messages,
+            messages: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
             stream: true,
         });
 
@@ -229,11 +222,8 @@ export async function POST(req: NextRequest) {
         // Map messages to Gemini format (simple text for now)
         // TODO: Handle multi-modal input if needed in the future
         const geminiHistory: Content[] = messages
-          .filter((msg: any) => msg.role === 'user' || msg.role === 'assistant') // Filter system/other roles if necessary
-          .map((msg: any) => ({
-            role: msg.role === 'user' ? 'user' : 'model', 
-            parts: [{ text: msg.content }],
-          }));
+          .filter((msg: InputMessage): msg is InputMessage & { role: 'user' | 'assistant' } => msg.role === 'user' || msg.role === 'assistant')
+          .map((msg) => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] }));
         
         // Extract the last user message for the current turn
         const currentUserMessage = geminiHistory.pop(); // Remove last message to send separately
@@ -254,11 +244,8 @@ export async function POST(req: NextRequest) {
 
         console.log(`[API Call Start] Calling Gemini stream with model: ${requestedModelId}...`);
 
-        const geminiStream = await modelInstance.generateContentStream({
-            contents: [...geminiHistory, currentUserMessage], // Combine history and current message
-            generationConfig: generationConfig,
-            // safetySettings: [] // Optional: Configure safety settings
-        });
+        const chat = modelInstance.startChat({ history: geminiHistory, generationConfig });
+        const streamResult = await chat.sendMessageStream(currentUserMessage.parts);
 
         console.log('[API Call Success] Gemini stream initiated.');
 
@@ -267,20 +254,11 @@ export async function POST(req: NextRequest) {
             async start(controller) {
                 const encoder = new TextEncoder();
                 try {
-                    for await (const chunk of geminiStream.stream) {
-                        // Ensure candidates exist and have content
-                        const candidates = chunk.candidates;
-                        if (candidates && candidates.length > 0) {
-                            // Process all parts within the first candidate's content
-                            const content = candidates[0].content;
-                            if (content && content.parts && content.parts.length > 0) {
-                                content.parts.forEach((part: Part) => {
-                                    if (part.text) { // Ensure it's a text part
-                                        const formattedChunk = `0:${JSON.stringify(part.text)}\n`;
-                                        controller.enqueue(encoder.encode(formattedChunk));
-                                    }
-                                });
-                            }
+                    for await (const chunk of streamResult.stream) {
+                        const textChunk = chunk.text(); 
+                        if (textChunk) {
+                            const formattedChunk = `0:${JSON.stringify(textChunk)}\n`;
+                            controller.enqueue(encoder.encode(formattedChunk));
                         }
                     }
                 } catch (err) {
@@ -306,69 +284,16 @@ export async function POST(req: NextRequest) {
     // --- Return the appropriate stream ---
     return new Response(responseStream, {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
       },
     });
 
-  } catch (error: any) {
-    console.error('[API Route Error] Raw error object:', error); // Log the raw error first
-
-    let errorDetails = 'An unknown error occurred while processing your request.';
-    let statusCode = 500;
-    const failedModel = requestedModelId || 'unknown';
-    let logMessage = `[API Call Error] Failed for model ${failedModel}.`;
-
-    // Add specific log for gpt-4o failure context
-    if (failedModel === 'gpt-4o') {
-       console.error(`[API Error Specific] Failure occurred specifically when using gpt-4o with OpenAI client. Raw Error was:`, error);
-    }
-
-    // --- Handle OpenAI API Errors --- 
-    if (error instanceof OpenAI.APIError) {
-        statusCode = error.status || 500;
-        // Use the error message directly from OpenAI which is often detailed
-        errorDetails = error.message || `OpenAI API Error (Status ${statusCode})`;
-        logMessage += ` OpenAI API Error (${error.code || 'no code'}): ${error.message}. Status: ${statusCode}.`;
-        console.error(logMessage, 'Full OpenAI Error Details:', JSON.stringify(error, null, 2)); // Log full error 
-
-        // Specific OpenAI error codes/statuses
-        if (error.status === 404 || error.code === 'model_not_found') {
-            errorDetails = `Model ${failedModel} not found or you do not have access via the provided API key.`;
-            statusCode = 400; // Bad request
-        } else if (error.status === 401 || error.status === 403 || error.code === 'authentication_error' || error.code === 'invalid_api_key') {
-             errorDetails = `Authentication error or permission denied for model ${failedModel}. Check your API key (${maskApiKey(selectedApiKey)}) and ensure it has access granted to the '${failedModel}' model in your OpenAI account settings. Error code: ${error.code || 'N/A'}`;
-             statusCode = 401; // Unauthorized
-        } else if (error.status === 429 || error.code === 'rate_limit_exceeded') {
-             errorDetails = `Rate limit exceeded for model ${failedModel}. Please try again later. Code: ${error.code || 'N/A'}`;
-             statusCode = 429;
-        } else {
-             // Log unexpected OpenAI errors
-             console.error(`[API Error Specific] Unexpected OpenAI API error status/code for ${failedModel}:`, error);
-        }
-    } else if (error.message?.startsWith('Configuration error:')) {
-        // Keep handling for missing API keys
-        errorDetails = 'Server configuration issue. Please contact the administrator.';
-        statusCode = 500;
-        logMessage += ` Configuration Error: ${error.message}`;
-        console.error(logMessage);
-    } else if (error instanceof Error) {
-        // Generic errors
-        errorDetails = error.message;
-        logMessage += ` Generic Error: ${error.message}.`;
-        console.error(logMessage, 'Stack:', error.stack);
-    } else {
-        // Unknown errors
-        logMessage += ` Unknown Error Type: ${JSON.stringify(error)}`;
-        console.error(logMessage);
-    }
-
-    console.error(`[API Error Summary] Model: ${failedModel}, Status: ${statusCode}, Details: ${errorDetails}`); // Log summary before returning
-
-    // --- Return JSON error response ---
-    return NextResponse.json({
-      error: 'Failed to process request with OpenAI', // Updated error message source
-      details: errorDetails,
-      modelUsed: failedModel
-    }, { status: statusCode });
+  } catch (error: unknown) {
+    console.error('[API Route Error] Unhandled error in POST handler:', error);
+    // Check if it's an Error object for a better message
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 } 
