@@ -1,4 +1,5 @@
-import NextAuth, { NextAuthOptions, User } from 'next-auth';
+import NextAuth, { NextAuthOptions, User, Session } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcrypt';
 import clientPromise from '../../../../../lib/mongodb';
@@ -42,17 +43,16 @@ const authOptions: NextAuthOptions = {
     signIn: '/login',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: JWT; user?: User }) {
       if (user) {
         token.id = user.id;
         token.name = user.name;
       }
       return token;
     },
-    async session({ session, token }) {
-      if (session?.user && token?.id) {
-        (session.user as any).id = token.id as string;
-        (session.user as any).name = token.name as string;
+    async session({ session, token }: { session: Session; token: JWT }): Promise<Session> {
+      if (session.user && token.id) {
+        (session.user as { id?: string }).id = token.id as string;
       }
       return session;
     },
