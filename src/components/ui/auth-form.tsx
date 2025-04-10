@@ -8,6 +8,7 @@ import { motion } from "framer-motion"
 import { useTheme } from "next-themes"
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   className?: string
@@ -28,6 +29,7 @@ const AuthForm: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
@@ -74,17 +76,22 @@ const AuthForm: React.FC = () => {
         const result = await signIn('credentials', {
           email: formData.email,
           password: formData.password,
-          callbackUrl: '/', // Specify desired redirect path on success
+          redirect: false,
         });
 
         if (result?.error) {
           // Handle authentication errors (e.g., wrong password)
           console.error("Login error from next-auth:", result.error);
-          // Use a user-friendly message. next-auth might return specific error keys
-          // depending on config, or a generic message.
           setError('Invalid email or password.'); 
-        } 
-        // No need for router.push here, signIn handles redirect
+        } else if (result?.ok) {
+            // Explicitly redirect on success
+            router.push('/');
+        } else {
+            // Handle cases where signIn resolves without ok or error (should be rare)
+             console.error("Unexpected signIn result:", result);
+             setError('An unexpected issue occurred during login.');
+        }
+
       } catch (err) {
         // Handle network errors or other issues calling signIn
         console.error("Error calling signIn:", err);
