@@ -45,8 +45,7 @@ export default function Home() {
   const router = useRouter();
 
   // State for custom indicators
-  const [showProfileIndicator, setShowProfileIndicator] = useState(true);
-  const [showNewModelIndicator, setShowNewModelIndicator] = useState(true);
+  const [showNewModelIndicator, setShowNewModelIndicator] = useState(true); // Only keep state for New Tool indicator
 
   // --- Use next-auth session --- 
   // Only get status if session data is not used
@@ -159,25 +158,10 @@ export default function Home() {
             variant="ghost"
             size="icon"
             className="size-8"
-            onClick={() => setShowProfileIndicator(false)} // Hide indicator on click
             aria-label="Profile"
           >
             <User className="h-4 w-4" />
           </Button>
-          {/* Initially Visible "Coming Soon" Indicator */}
-          {showProfileIndicator && (
-            <motion.div
-              initial={{ opacity: 1 }}
-              animate={{ opacity: showProfileIndicator ? 1 : 0 }}
-              transition={{ duration: 0.3 }}
-              className="absolute top-full right-0 mt-2 z-50 overflow-hidden rounded-md border bg-[#ad4f11] px-3 py-1.5 text-xs text-white dark:text-white shadow-md"
-              style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }} // Prevent interaction & wrapping
-            >
-              Coming Soon
-              {/* Adjusted Arrow: Increased size slightly, ensured positioning */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-[#ad4f11]" data-arrow="profile"></div>
-            </motion.div>
-          )}
         </div>
       </div>
 
