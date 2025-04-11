@@ -27,6 +27,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from "next-auth/react";
+import { AvatarWithInitials } from '@/components/ui/avatar-initials';
 
 // Define LLM models
 const LLM_MODELS = {
@@ -257,14 +258,21 @@ export default function Home() {
                    label: session.user.name || session.user.email || "User", // Display name or email
                    href: "#", // Link to profile page eventually
                    icon: (
-                     <Image
-                       // Use a default avatar or fetch user's image if available
-                       src={session.user.image || "https://assets.aceternity.com/manu.png"}
-                       className="h-7 w-7 flex-shrink-0 rounded-full"
-                       width={50}
-                       height={50}
-                       alt="Avatar"
-                     />
+                     session.user.image ? (
+                       // Use Image if available
+                       <Image
+                         src={session.user.image}
+                         className="h-7 w-7 flex-shrink-0 rounded-full"
+                         width={50}
+                         height={50}
+                         alt="Avatar"
+                       />
+                     ) : (
+                       // Otherwise, use initials
+                       <AvatarWithInitials
+                         name={session.user.name || session.user.email || '?'}
+                       />
+                     )
                    ),
                  }}
                />
