@@ -45,15 +45,102 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { messages, model }: { messages: InputMessage[], model: string } = body;
+    // Destructure useWebSearch along with messages and model
+    const { messages, model, useWebSearch }: { messages: InputMessage[], model: string, useWebSearch?: boolean } = body;
     requestedModelId = model;
 
     const latestMessageContent = messages?.[messages.length - 1]?.content?.substring(0, 50) + '...' || 'no message content';
-    console.log('[API Route Start] Received:', { message: latestMessageContent, model: requestedModelId });
+    // Log the useWebSearch flag
+    console.log('[API Route Start] Received:', { message: latestMessageContent, model: requestedModelId, useWebSearch });
 
     if (!messages || messages.length === 0 || !requestedModelId) {
       console.error('[API Validation Error] Missing messages or model');
       return NextResponse.json({ error: 'Missing messages or model' }, { status: 400 });
+    }
+
+    // --- START: Web Search Logic --- 
+    let searchResultsText: string | null = null;
+    if (useWebSearch) {
+        console.log('[API Logic] Web search enabled. Performing search...');
+        try {
+            const query = messages[messages.length - 1]?.content; // Use last message as query
+            if (!query) {
+                throw new Error("Cannot perform web search without a query.");
+            }
+
+            const apiKey = process.env.GOOGLE_CSE_API_KEY;
+            const cx = process.env.GOOGLE_CSE_ID;
+
+            if (!apiKey || !cx) {
+                console.error('[API Env Error] Google Custom Search API Key or CX ID missing.');
+                throw new Error("Configuration error: Google Custom Search API Key or CX ID is missing.");
+            }
+
+            const numResults = 3; // Number of results to fetch
+            const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(query)}&num=${numResults}`;
+            console.log(`[API Logic] Calling Google Search URL: ${searchUrl.replace(apiKey, '***')}`); // Log URL without key
+
+            const searchResponse = await fetch(searchUrl);
+            if (!searchResponse.ok) {
+                const errorText = await searchResponse.text();
+                console.error(`[API Error] Google Search API Error (${searchResponse.status}): ${errorText}`);
+                throw new Error(`Google Search API Error (${searchResponse.status})`); // Don't leak detailed error text potentially
+            }
+
+            const searchData = await searchResponse.json();
+
+            if (searchData.items && searchData.items.length > 0) {
+                searchResultsText = "Web search results:\n\n";
+                searchData.items.forEach((item: any, index: number) => {
+                    // Basic check for title, snippet, link
+                    const title = item.title || 'No Title';
+                    const snippet = item.snippet || 'No Snippet';
+                    const link = item.link || 'No Link';
+                    searchResultsText += `${index + 1}. ${title}\n   Snippet: ${snippet.replace(/\n/g, ' ')}\n   URL: ${link}\n\n`; // Replace newlines in snippet
+                });
+                console.log('[API Logic] Web search successful. Results formatted.');
+            } else {
+                console.log('[API Logic] Web search returned no results.');
+                searchResultsText = "Web search returned no relevant results.\n\n"; // Inform LLM
+            }
+
+        } catch (searchError) {
+            console.error('[API Error] Web search failed:', searchError);
+            // Provide a generic error message to the LLM context
+            searchResultsText = "An error occurred during the web search. Proceeding without search results.\n\n";
+        }
+    }
+    // --- END: Web Search Logic ---
+
+    // Augment the last user message if search results exist
+    // Create a deep copy to avoid modifying the original messages array if needed elsewhere
+    const processedMessages = messages.map(m => ({ ...m })); 
+    if (searchResultsText) {
+        const lastMessageIndex = processedMessages.length - 1;
+        if (processedMessages[lastMessageIndex]?.role === 'user') {
+            // Add further revised instructions for the LLM
+            processedMessages[lastMessageIndex].content = 
+`${searchResultsText}Instructions for AI: 
+1. Synthesize an informative answer to the user's query based *only* on the web search results provided above.
+2. Use clear language and structure the answer logically with paragraphs separated by a blank line.
+3. Bold key terms or entities in your response.
+4. Cite the information using bracketed numbers (e.g., [1], [2]) corresponding to the numbered search result(s) used.
+5. If the search results do not contain the answer, state that clearly.
+6. Do not use prior knowledge.
+7. At the very end of your response, include a section titled **Sources:** (exactly like that, bolded).
+8. Below the Sources heading, list the URLs for the cited results using a numbered list format. Ensure there is a blank line between each source list item for spacing. Example:
+   **Sources:**
+
+   [1] URL of source 1
+
+   [2] URL of source 2
+
+User Query:
+${processedMessages[lastMessageIndex].content}`;
+            console.log('[API Logic] Augmented last user message with search results and further revised instructions.');
+        } else {
+            console.warn('[API Logic] Could not augment message: Last message not from user.');
+        }
     }
 
     // --- API Key and Client Setup ---
@@ -73,7 +160,8 @@ export async function POST(req: NextRequest) {
         console.log(`[API Call Start] Calling OpenAI completions with model: ${requestedModelId}...`);
         const stream: Stream<ChatCompletionChunk> = await openai.chat.completions.create({
             model: requestedModelId,
-            messages: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })), 
+            // Use the potentially augmented messages
+            messages: processedMessages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })), 
             stream: true,
         });
         console.log('[API Call Success] OpenAI stream initiated.');
@@ -122,8 +210,9 @@ export async function POST(req: NextRequest) {
             'Accept': 'text/event-stream', // Important for streaming
         };
         const grokBody = JSON.stringify({
-            model: requestedModelId, // Use the requested model ID ('grok-2' or 'grok-3')
-            messages: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
+            model: requestedModelId,
+            // Use the potentially augmented messages
+            messages: processedMessages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
             stream: true,
         });
 
@@ -219,17 +308,16 @@ export async function POST(req: NextRequest) {
         const genAI = new GoogleGenerativeAI(selectedApiKey);
         const modelInstance = genAI.getGenerativeModel({ model: requestedModelId });
 
-        // Map messages to Gemini format (simple text for now)
-        // TODO: Handle multi-modal input if needed in the future
-        const geminiHistory: Content[] = messages
-          .filter((msg: InputMessage): msg is InputMessage & { role: 'user' | 'assistant' } => msg.role === 'user' || msg.role === 'assistant')
+        // Map potentially augmented messages to Gemini format
+        const geminiHistory: Content[] = processedMessages
+          .filter((msg: InputMessage): msg is InputMessage & { role: 'user' | 'assistant' } => msg.role === 'user' || msg.role === 'assistant') // Filter for user/model roles
           .map((msg) => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] }));
-        
-        // Extract the last user message for the current turn
+          
+        // Extract the last user message for the current turn (which now contains search results + instructions)
         const currentUserMessage = geminiHistory.pop(); // Remove last message to send separately
         if (!currentUserMessage || currentUserMessage.role !== 'user') {
-           console.error('[API Logic Error] Last message was not from user or missing for Gemini');
-           throw new Error('Cannot send request to Gemini without a final user message.');
+           console.error('[API Logic Error] Last message was not from user or missing for Gemini after processing');
+           throw new Error('Cannot send request to Gemini without a final user message after processing.');
         }
 
         // TODO: Define appropriate generationConfig based on the specific Gemini model

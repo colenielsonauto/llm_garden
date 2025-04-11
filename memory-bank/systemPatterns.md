@@ -2,21 +2,26 @@
 
 ## Architecture (Current)
 
--   **Frontend:** Next.js application using React.
--   **Chat Interface:** Leverages the Vercel AI SDK `useChat` hook for managing state and streaming.
--   **Backend API:** Next.js API route (`/api/chat`) running on the Node.js runtime.
--   **LLM Interaction:** Backend API directly calls the relevant LLM provider's API (currently OpenAI) using their native SDK.
--   **Streaming:** Backend manually creates a `ReadableStream`, formats chunks using AI SDK Data Format, and sends it to the frontend.
+-   **Framework**: Next.js (App Router)
+-   **Frontend:** `src/app/page.tsx` using React, TypeScript, Shadcn UI, Tailwind CSS.
+-   **Chat Interface:** Leverages the Vercel AI SDK `useChat` hook for state and streaming.
+-   **Backend API:** Next.js API route (`src/app/api/chat/route.ts`) running on Node.js.
+-   **Authentication:** NextAuth.js (`src/app/api/auth/[...nextauth]/route.ts`), enforced via `src/middleware.ts`.
+-   **LLM Interaction:** Backend API directly calls the relevant LLM provider's API (OpenAI, Grok, Gemini) using their SDKs or `fetch`.
+-   **Web Search (Planned):** Backend API will conditionally call Google Custom Search API before the LLM call if requested by the frontend.
+-   **Streaming:** Backend manually creates a `ReadableStream`, formats chunks using AI SDK Data Format (`0:"<text>"\n`), and sends it to the frontend.
 
-## Key Technical Decisions (Recent)
+## Data Flow (Chat with Web Search Enabled)
 
--   Removed Vercel AI SDK from the backend API route handler.
--   Removed Edge Runtime usage for the chat API route.
--   Adopted direct usage of provider SDKs (starting with `openai`) in the backend.
--   Backend formats stream output to be compatible with the frontend's `useChat` hook requirements.
+`UI (page.tsx)` -> `useChat Hook (with useWebSearch: true)` -> `fetch ('/api/chat')` -> `API Route (route.ts)` -> `Google Custom Search API` -> `Format Results` -> `Augment Prompt` -> `Provider SDK/API (OpenAI/Grok/Gemini)` -> `Provider API` -> `Stream Response` -> `API Route` -> `Format Stream (AI SDK)` -> `UI`
 
-## Component Relationships
+## Key Technical Decisions
 
-`Chat UI Component` -> `useChat Hook (Vercel AI SDK)` -> `fetch ('/api/chat')` -> `Next.js API Route Handler` -> `Provider SDK (e.g., OpenAI Client)` -> `Provider API`
+-   Use Next.js App Router.
+-   Use Vercel AI SDK `useChat` hook on the frontend.
+-   Handle LLM provider logic directly in the backend API route.
+-   Manually format backend stream output for frontend compatibility.
+-   Use NextAuth.js for authentication.
+-   Integrate web search via Google Custom Search API, invoked server-side.
 
-_This is an initial draft based on the chat endpoint. Please expand with details about other system components, data flow, state management, and overall architectural choices._ 
+_Updated based on project review. Expand with details on state management, error handling patterns, etc._ 

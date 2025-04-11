@@ -162,6 +162,7 @@ export default function Home() {
     initialMessages: [],
     body: {
       model: selectedLlm?.id ?? '',
+      useWebSearch: showSearch
     },
     onResponse: (res) => {
       if (!res.ok) {

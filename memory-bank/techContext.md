@@ -2,28 +2,44 @@
 
 ## Technologies Used
 
--   **Frontend Framework:** Next.js (React)
+-   **Framework:** Next.js (App Router)
 -   **Language:** TypeScript
--   **UI Libraries:** Vercel AI SDK (`ai/react`, specifically `useChat` hook)
+-   **UI Libraries/Frameworks:** React, Shadcn UI, Tailwind CSS, Framer Motion
+-   **Chat State/Streaming:** Vercel AI SDK (`ai/react`, specifically `useChat` hook)
+-   **Authentication:** NextAuth.js (`next-auth`)
 -   **Backend Runtime:** Node.js (via Next.js API routes)
--   **LLM SDKs:** `openai` (currently)
--   **Environment Variables:** Used for API keys (e.g., `OPENAI_API_KEY_4_5`, `OPENAI_API_KEY_4O`) stored in `.env.local`.
+-   **LLM SDKs/APIs:**
+    -   `openai` (Node.js SDK)
+    -   `@google/generative-ai` (Node.js SDK for Gemini)
+    -   X.ai API (via `fetch` for Grok)
+    -   Google Custom Search API (via `fetch`)
+-   **Styling:** Tailwind CSS, PostCSS
+-   **Linting/Formatting:** ESLint (likely configured via `eslint.config.mjs`)
+-   **Package Manager:** npm (based on `package-lock.json`)
 
 ## Development Setup
 
--   Standard Next.js development server (`npm run dev` or `yarn dev`).
--   Requires Node.js and npm/yarn.
--   Requires population of API keys in `.env.local`.
+-   Standard Next.js development server (`npm run dev`).
+-   Requires Node.js and npm.
+-   Requires population of API keys in `.env.local` (OpenAI, X.ai, Gemini, Google CSE, NextAuth Secret/URL).
 
 ## Technical Constraints
 
--   The frontend `useChat` hook dictates the required stream format from the backend API.
--   Backend must handle authentication and potential errors for each LLM provider individually.
+-   The frontend `useChat` hook dictates the required stream format (`0:"<text>"\n`) from the `/api/chat` backend.
+-   Backend must handle authentication and provider-specific logic (API keys, request/response formats) for each LLM and the search API.
+-   NextAuth.js session management influences routing and UI rendering.
 
-## Dependencies
+## Key Dependencies (from package.json)
 
 -   `next`, `react`, `react-dom`, `typescript`
--   `ai` (for frontend `@ai-sdk/react`)
--   `openai` (for backend)
+-   `ai` (Vercel AI SDK)
+-   `openai`
+-   `@google/generative-ai`
+-   `next-auth`
+-   `@radix-ui/*` (Shadcn UI primitives)
+-   `tailwindcss`, `autoprefixer`, `postcss`
+-   `lucide-react` (Icons)
+-   `framer-motion` (Animations)
+-   `react-markdown`, `remark-gfm` (Markdown rendering)
 
-_This is an initial draft. Please expand with specific versions, build tools, linting/formatting setup, testing frameworks, and any other relevant technical details._ 
+_Updated based on project review. Add specific versions, build tool details if needed._ 
