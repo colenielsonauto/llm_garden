@@ -7,6 +7,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   PromptInput,
   PromptInputAction,
   PromptInputActions,
@@ -147,10 +153,19 @@ export default function Home() {
       {/* Header */}
       <div className="absolute top-4 right-4 flex items-center space-x-2">
         <ThemeToggle />
-        <Button variant="ghost" size="icon" className="size-8">
-          <User className="h-4 w-4" />
-          <span className="sr-only">Profile</span>
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-8">
+                <User className="h-4 w-4" />
+                <span className="sr-only">Profile</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="bg-[#018771] text-white dark:text-white border-none">
+              <p>Coming Soon!</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Central Shimmer Text - Updated to new green #018771 */}
