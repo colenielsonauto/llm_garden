@@ -7,12 +7,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   PromptInput,
   PromptInputAction,
   PromptInputActions,
@@ -177,11 +171,11 @@ export default function Home() {
               animate={{ opacity: showProfileIndicator ? 1 : 0 }}
               transition={{ duration: 0.3 }}
               className="absolute top-full right-0 mt-2 z-50 overflow-hidden rounded-md border bg-[#018771] px-3 py-1.5 text-xs text-white dark:text-white shadow-md"
-              style={{ pointerEvents: 'none' }} // Prevent interaction with the indicator itself
+              style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }} // Prevent interaction & wrapping
             >
               Coming Soon
-              {/* Simple CSS triangle arrow */}
-              <div className="absolute bottom-full right-2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[5px] border-b-[#018771]"></div>
+              {/* Adjusted Arrow: Increased size slightly, ensured positioning */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-[#018771]" data-arrow="profile"></div>
             </motion.div>
           )}
         </div>
@@ -189,6 +183,13 @@ export default function Home() {
 
       {/* Central Shimmer Text - Updated to new green #018771 */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none -z-10">
+        {/* Beta Tag - Top Left */}
+        <div className="absolute top-4 left-4 z-10">
+          {/* Increased size of Beta tag */}
+          <span className="text-lg font-medium text-[#018771] border-2 border-[#018771] rounded-lg px-3 py-1">
+            Beta
+          </span>
+        </div>
         <TextShimmer
           duration={1.2}
           className='text-2xl font-medium text-center [--base-color:#018771] [--base-gradient-color:#01A98C] dark:[--base-color:#018771] dark:[--base-gradient-color:#01A98C]'
@@ -302,53 +303,71 @@ export default function Home() {
                    </label>
                  </PromptInputAction>
 
-                 {/* LLM Selector - Updated to new green #018771 */}
-                 <PromptInputAction tooltip="Select Model">
-                   <DropdownMenu onOpenChange={(open) => {
-                     // Hide indicator when dropdown opens
-                     if (open) setShowNewModelIndicator(false);
-                   }}>
-                     <DropdownMenuTrigger asChild disabled={isLoading}>
-                       <MotionButton
-                         variant="ghost"
-                         size="icon"
-                         className={cn(
-                           "size-8 relative overflow-hidden focus-visible:outline-none",
-                           !selectedLlm &&
-                             "bg-[length:200%_100%] bg-clip-padding [--base-color:#018771] [--base-gradient-color:#01A98C] dark:[--base-color:#018771] dark:[--base-gradient-color:#01A98C] [--bg:linear-gradient(90deg,transparent_40%,var(--base-gradient-color),transparent_60%)] [background-image:var(--bg),linear-gradient(var(--base-color),var(--base-color)) ]"
-                         )}
-                         animate={!selectedLlm ? {
-                           backgroundPosition: ["150% center", "-50% center"],
-                         }: {}}
-                         transition={!selectedLlm ? {
-                           repeat: Infinity,
-                           duration: 1.2,
-                           ease: "linear",
-                         }: {}}
-                         disabled={isLoading}
-                       >
-                         <Box size={20} strokeWidth={1.5} className="text-[#018771]" />
-                       </MotionButton>
-                     </DropdownMenuTrigger>
-                     <DropdownMenuContent align="start">
-                       {Object.values(LLM_MODELS).map((llm) => (
-                          <DropdownMenuItem
-                            key={llm.id}
-                            onSelect={() => selectLlm(llm)}
-                            disabled={isLoading}
-                            className="flex justify-between items-center"
-                          >
-                            <span>{llm.name}</span>
-                            {llm.id === 'grok-3' && (
-                              <span className="ml-2 text-xs font-medium text-[#018771] border border-[#018771] rounded px-1.5 py-0.5">
-                                New
-                              </span>
-                            )}
-                          </DropdownMenuItem>
-                       ))}
-                     </DropdownMenuContent>
-                   </DropdownMenu>
-                 </PromptInputAction>
+                 {/* LLM Selector Wrapper for positioning */}
+                 <div className="relative">
+                   <PromptInputAction tooltip="Select Model">
+                     <DropdownMenu onOpenChange={(open) => {
+                       // Hide indicator when dropdown opens
+                       if (open) setShowNewModelIndicator(false);
+                     }}>
+                       <DropdownMenuTrigger asChild disabled={isLoading}>
+                         <MotionButton
+                           variant="ghost"
+                           size="icon"
+                           className={cn(
+                             "size-8 relative overflow-hidden focus-visible:outline-none",
+                             !selectedLlm &&
+                               "bg-[length:200%_100%] bg-clip-padding [--base-color:#018771] [--base-gradient-color:#01A98C] dark:[--base-color:#018771] dark:[--base-gradient-color:#01A98C] [--bg:linear-gradient(90deg,transparent_40%,var(--base-gradient-color),transparent_60%)] [background-image:var(--bg),linear-gradient(var(--base-color),var(--base-color)) ]"
+                           )}
+                           animate={!selectedLlm ? {
+                             backgroundPosition: ["150% center", "-50% center"],
+                           }: {}}
+                           transition={!selectedLlm ? {
+                             repeat: Infinity,
+                             duration: 1.2,
+                             ease: "linear",
+                           }: {}}
+                           disabled={isLoading}
+                         >
+                           <Box size={20} strokeWidth={1.5} className="text-[#018771]" />
+                         </MotionButton>
+                       </DropdownMenuTrigger>
+                       <DropdownMenuContent align="start">
+                         {Object.values(LLM_MODELS).map((llm) => (
+                            <DropdownMenuItem
+                              key={llm.id}
+                              onSelect={() => selectLlm(llm)}
+                              disabled={isLoading}
+                              className="flex justify-between items-center"
+                            >
+                              <span>{llm.name}</span>
+                              {llm.id === 'grok-3' && (
+                                <span className="ml-2 text-xs font-medium text-[#018771] border border-[#018771] rounded px-1.5 py-0.5">
+                                  New
+                                </span>
+                              )}
+                            </DropdownMenuItem>
+                         ))}
+                       </DropdownMenuContent>
+                     </DropdownMenu>
+                   </PromptInputAction>
+
+                   {/* Initially Visible "New Tool!" Indicator */}
+                   {showNewModelIndicator && (
+                     <motion.div
+                       initial={{ opacity: 1 }}
+                       animate={{ opacity: showNewModelIndicator ? 1 : 0 }}
+                       transition={{ duration: 0.3 }}
+                       className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 overflow-hidden rounded-md border bg-[#018771] px-3 py-1.5 text-xs text-white dark:text-white shadow-md"
+                       style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }} // Prevent interaction & wrapping
+                     >
+                       New Tool
+                       {/* Adjusted Arrow: Increased size slightly, ensured positioning */}
+                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-[#018771]" data-arrow="model"></div>
+                     </motion.div>
+                   )}
+                 </div>
+
               </div>
 
               {/* Submit Button */}
@@ -370,22 +389,6 @@ export default function Home() {
                 </Button>
               </PromptInputAction>
             </PromptInputActions>
-            {/* Initially Visible "New Model" Indicator */}
-            {showNewModelIndicator && (
-                <div className="relative flex justify-center">
-                    <motion.div
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: showNewModelIndicator ? 1 : 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute bottom-full mb-2 z-50 overflow-hidden rounded-md border bg-[#018771] px-3 py-1.5 text-xs text-white dark:text-white shadow-md"
-                    style={{ pointerEvents: 'none' }} // Prevent interaction
-                    >
-                    New
-                    {/* Simple CSS triangle arrow pointing down */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-[#018771]"></div>
-                    </motion.div>
-                </div>
-            )}
           </PromptInput>
         </form>
       </div>
