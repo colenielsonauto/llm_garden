@@ -17,8 +17,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const size = { width: 32, height: 32 }
-
 export const icon = () => {
   return new ImageResponse(
     (
@@ -38,7 +36,8 @@ export const icon = () => {
       </div>
     ),
     {
-      ...size,
+      width: 32,
+      height: 32,
     }
   )
 }
