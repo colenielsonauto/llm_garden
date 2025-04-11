@@ -36,6 +36,7 @@ const LLM_MODELS = {
   GPT_4_5: { id: 'gpt-4.5-preview', name: 'ChatGPT 4.5' },
   GPT_4O: { id: 'gpt-4o', name: 'ChatGPT 4o' },
   GROK_2: { id: 'grok-2', name: 'Grok 2' },
+  GROK_3: { id: 'grok-3', name: 'Grok 3' },
   GEMINI_FLASH: { id: 'gemini-2.0-flash-exp-image-generation', name: 'Gemini Flash (Image)' },
   GEMINI_PRO: { id: 'gemini-2.5-pro-preview-03-25', name: 'Gemini 2.5 Pro' },
 };

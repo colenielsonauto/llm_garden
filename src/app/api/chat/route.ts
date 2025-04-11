@@ -104,14 +104,14 @@ export async function POST(req: NextRequest) {
             }
         });
 
-    } else if (requestedModelId === 'grok-2') {
-        // --- Grok Handling ---
-        // Restore using environment variable
-        selectedApiKey = process.env.XAI_API_KEY; // Use XAI_API_KEY
+    } else if (requestedModelId === 'grok-2' || requestedModelId === 'grok-3') {
+        const isGrok3 = requestedModelId === 'grok-3';
+        selectedApiKey = isGrok3 ? process.env.XAI_API_KEY_GROK3 : process.env.XAI_API_KEY;
+        const keyName = isGrok3 ? 'XAI_API_KEY_GROK3' : 'XAI_API_KEY';
+
         if (!selectedApiKey) {
-            // Restore original error handling
-            console.error('[API Env Error] API key for grok-2 (XAI_API_KEY) not found.');
-            throw new Error('Configuration error: API key for grok-2 missing.');
+            console.error(`[API Env Error] API key for ${requestedModelId} (${keyName}) not found.`);
+            throw new Error(`Configuration error: API key for ${requestedModelId} missing.`);
         }
         console.log(`[API Key Select] Using Grok key for ${requestedModelId}: ${maskApiKey(selectedApiKey)}`);
 
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
             'Accept': 'text/event-stream', // Important for streaming
         };
         const grokBody = JSON.stringify({
-            model: 'grok-2', // Or potentially 'grok-beta' if 'grok-2' fails
+            model: requestedModelId, // Use the requested model ID ('grok-2' or 'grok-3')
             messages: messages.map(m => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
             stream: true,
         });
