@@ -16,9 +16,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const Button: React.FC<ButtonProps> = ({ children, className, ...props }) => (
   <button
-    className={`rounded-md bg-gradient-to-br from-[#018771] to-[#018771] px-4 py-2 text-lg text-zinc-100 dark:text-zinc-100 
-    ring-2 ring-[#018771]/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 
-    transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-[#018771]/70 ${className}`}
+    className={`rounded-md bg-gradient-to-br from-[#ad4f11] to-[#ad4f11] px-4 py-2 text-lg text-zinc-100 dark:text-zinc-100 
+    ring-2 ring-[#ad4f11]/50 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950 
+    transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-[#ad4f11]/70 ${className}`}
     {...props}
   >
     {children}
@@ -131,7 +131,7 @@ const AuthForm: React.FC = () => {
 
 const Logo: React.FC = () => (
   <div className="mb-6 flex items-center justify-center">
-    <Box size={32} className="mr-2 text-[#018771]" /> 
+    <Box size={32} className="mr-2 text-[#ad4f11]" /> 
     <span className="text-xl font-bold text-zinc-800 dark:text-zinc-200">AI Garden</span>
   </div>
 )
@@ -151,7 +151,7 @@ const Header: React.FC<HeaderProps> = ({ isSignUp, toggleMode }) => (
       <button
         type="button"
         onClick={toggleMode}
-        className="text-[#018771] dark:text-[#018771] hover:underline focus:outline-none bg-transparent border-none p-0 m-0 cursor-pointer"
+        className="text-[#ad4f11] dark:text-[#ad4f11] hover:underline focus:outline-none bg-transparent border-none p-0 m-0 cursor-pointer"
       >
         {isSignUp ? "Sign in." : "Create one."}
       </button>
@@ -201,7 +201,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ isSignUp, onSubmit, isLoading }) 
             className="w-full rounded-md border border-zinc-300 dark:border-zinc-700
             bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-800 dark:text-zinc-200
             placeholder-zinc-400 dark:placeholder-zinc-500
-            ring-1 ring-transparent transition-shadow focus:outline-0 focus:ring-[#018771]"
+            ring-1 ring-transparent transition-shadow focus:outline-0 focus:ring-[#ad4f11]"
             disabled={isLoading}
           />
         </div>
@@ -223,7 +223,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ isSignUp, onSubmit, isLoading }) 
           className="w-full rounded-md border border-zinc-300 dark:border-zinc-700
           bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-800 dark:text-zinc-200
           placeholder-zinc-400 dark:placeholder-zinc-500
-          ring-1 ring-transparent transition-shadow focus:outline-0 focus:ring-[#018771]"
+          ring-1 ring-transparent transition-shadow focus:outline-0 focus:ring-[#ad4f11]"
           disabled={isLoading}
         />
       </div>
@@ -236,7 +236,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ isSignUp, onSubmit, isLoading }) 
             Password
           </label>
           {!isSignUp && (
-             <a href="#" className="text-sm text-[#018771] dark:text-[#018771] hover:underline">
+             <a href="#" className="text-sm text-[#ad4f11] dark:text-[#ad4f11] hover:underline">
                Forgot?
              </a>
           )}
@@ -252,7 +252,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ isSignUp, onSubmit, isLoading }) 
           className="w-full rounded-md border border-zinc-300 dark:border-zinc-700
           bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-800 dark:text-zinc-200
           placeholder-zinc-400 dark:placeholder-zinc-500
-          ring-1 ring-transparent transition-shadow focus:outline-0 focus:ring-[#018771]"
+          ring-1 ring-transparent transition-shadow focus:outline-0 focus:ring-[#ad4f11]"
           disabled={isLoading}
         />
       </div>
@@ -278,9 +278,9 @@ interface TermsAndConditionsProps {
 const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({ isSignUp }) => (
   <div className="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
     By {isSignUp ? "signing up" : "signing in"}, you agree to our <br />
-    <Link href="/terms" className="text-[#018771] dark:text-[#018771] hover:underline">
+    <Link href="/terms" className="text-[#ad4f11] dark:text-[#ad4f11] hover:underline">
       Terms
-    </Link> and <Link href="/privacy" className="text-[#018771] dark:text-[#018771] hover:underline">
+    </Link> and <Link href="/privacy" className="text-[#ad4f11] dark:text-[#ad4f11] hover:underline">
       Privacy Policy
     </Link>.
   </div>
@@ -293,8 +293,8 @@ const BackgroundDecoration: React.FC = () => {
   React.useEffect(() => {
     const isDarkTheme = theme === "dark"
     setGradientStyle({
-      background: `radial-gradient(circle at top right, ${isDarkTheme ? "rgba(1, 135, 113, 0.15)" : "rgba(1, 135, 113, 0.1)"} 0%, transparent 50%), 
-                   radial-gradient(circle at bottom left, ${isDarkTheme ? "rgba(1, 135, 113, 0.15)" : "rgba(1, 135, 113, 0.1)"} 0%, transparent 50%)`,
+      background: `radial-gradient(circle at top right, ${isDarkTheme ? "rgba(173, 79, 17, 0.15)" : "rgba(173, 79, 17, 0.1)"} 0%, transparent 50%), 
+                   radial-gradient(circle at bottom left, ${isDarkTheme ? "rgba(173, 79, 17, 0.15)" : "rgba(173, 79, 17, 0.1)"} 0%, transparent 50%)`,
     })
   }, [theme])
 
