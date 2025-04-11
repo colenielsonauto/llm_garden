@@ -50,6 +50,10 @@ export default function Home() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // State for custom indicators
+  const [showProfileIndicator, setShowProfileIndicator] = useState(true);
+  const [showNewModelIndicator, setShowNewModelIndicator] = useState(true);
+
   // --- Use next-auth session --- 
   // Only get status if session data is not used
   const { status } = useSession({
@@ -154,19 +158,33 @@ export default function Home() {
       {/* Header */}
       <div className="absolute top-4 right-4 flex items-center space-x-2">
         <ThemeToggle />
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-8">
-                <User className="h-4 w-4" />
-                <span className="sr-only">Profile</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-[#018771] text-white dark:text-white border-none">
-              <p>Coming Soon!</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+
+        {/* Profile Button Area */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={() => setShowProfileIndicator(false)} // Hide indicator on click
+            aria-label="Profile"
+          >
+            <User className="h-4 w-4" />
+          </Button>
+          {/* Initially Visible "Coming Soon" Indicator */}
+          {showProfileIndicator && (
+            <motion.div
+              initial={{ opacity: 1 }}
+              animate={{ opacity: showProfileIndicator ? 1 : 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute top-full right-0 mt-2 z-50 overflow-hidden rounded-md border bg-[#018771] px-3 py-1.5 text-xs text-white dark:text-white shadow-md"
+              style={{ pointerEvents: 'none' }} // Prevent interaction with the indicator itself
+            >
+              Coming Soon
+              {/* Simple CSS triangle arrow */}
+              <div className="absolute bottom-full right-2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[5px] border-b-[#018771]"></div>
+            </motion.div>
+          )}
+        </div>
       </div>
 
       {/* Central Shimmer Text - Updated to new green #018771 */}
@@ -286,7 +304,10 @@ export default function Home() {
 
                  {/* LLM Selector - Updated to new green #018771 */}
                  <PromptInputAction tooltip="Select Model">
-                   <DropdownMenu>
+                   <DropdownMenu onOpenChange={(open) => {
+                     // Hide indicator when dropdown opens
+                     if (open) setShowNewModelIndicator(false);
+                   }}>
                      <DropdownMenuTrigger asChild disabled={isLoading}>
                        <MotionButton
                          variant="ghost"
@@ -315,8 +336,14 @@ export default function Home() {
                             key={llm.id}
                             onSelect={() => selectLlm(llm)}
                             disabled={isLoading}
+                            className="flex justify-between items-center"
                           >
-                            {llm.name}
+                            <span>{llm.name}</span>
+                            {llm.id === 'grok-3' && (
+                              <span className="ml-2 text-xs font-medium text-[#018771] border border-[#018771] rounded px-1.5 py-0.5">
+                                New
+                              </span>
+                            )}
                           </DropdownMenuItem>
                        ))}
                      </DropdownMenuContent>
@@ -343,6 +370,22 @@ export default function Home() {
                 </Button>
               </PromptInputAction>
             </PromptInputActions>
+            {/* Initially Visible "New Model" Indicator */}
+            {showNewModelIndicator && (
+                <div className="relative flex justify-center">
+                    <motion.div
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: showNewModelIndicator ? 1 : 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute bottom-full mb-2 z-50 overflow-hidden rounded-md border bg-[#018771] px-3 py-1.5 text-xs text-white dark:text-white shadow-md"
+                    style={{ pointerEvents: 'none' }} // Prevent interaction
+                    >
+                    New
+                    {/* Simple CSS triangle arrow pointing down */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-[#018771]"></div>
+                    </motion.div>
+                </div>
+            )}
           </PromptInput>
         </form>
       </div>
