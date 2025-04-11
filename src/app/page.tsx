@@ -121,7 +121,6 @@ interface DashboardProps {
   selectLlm: (llm: { id: string; name: string }) => void;
   showNewModelIndicator: boolean;
   setShowNewModelIndicator: React.Dispatch<React.SetStateAction<boolean>>;
-  isModelDropdownOpen: boolean;
   setIsModelDropdownOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isModelSelectorActive: boolean | null; // Allow null from calculation
 }
@@ -293,7 +292,6 @@ export default function Home() {
         selectLlm={selectLlm}
         showNewModelIndicator={showNewModelIndicator}
         setShowNewModelIndicator={setShowNewModelIndicator}
-        isModelDropdownOpen={isModelDropdownOpen}
         setIsModelDropdownOpen={setIsModelDropdownOpen}
         isModelSelectorActive={isModelSelectorActive}
       />
@@ -320,7 +318,6 @@ const Dashboard = ({
   selectLlm,
   showNewModelIndicator,
   setShowNewModelIndicator,
-  isModelDropdownOpen,
   setIsModelDropdownOpen,
   isModelSelectorActive
 }: DashboardProps) => { // Use the defined interface
