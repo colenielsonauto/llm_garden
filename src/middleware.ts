@@ -5,13 +5,14 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api/auth/signup (allow signup API requests)
-     * - api/auth/ [...nextauth] (allow next-auth routes)
-     * - login (allow access to the login page)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
+     * - /api/auth/ (ANY auth API routes including callbacks)
+     * - /login (the login page)
+     * - /_next/static (static files)
+     * - /_next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - /api/chat (Allow chat API, remove if it should be protected)
+     * - / (Allow root path, adjust if needed)
      */
-    '/((?!api/auth/signup|api/auth|login|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api/auth/|login|_next/static|_next/image|favicon.ico|api/chat|$).*)',
   ],
 } 
