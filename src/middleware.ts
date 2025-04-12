@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 // Remove unused NextRequest import
 // import type { NextRequest } from 'next/server';
-import { withAuth, NextRequestWithAuth } from 'next-auth/middleware';
+import { withAuth } from 'next-auth/middleware';
 // Remove tracking imports
 // import { trackEvent, getRequestDetails, getUserIdFromSession } from '@/lib/tracking';
 

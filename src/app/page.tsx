@@ -72,7 +72,7 @@ const LogoIcon = () => {
 };
 
 // Sidebar Links (from Demo.tsx)
-const createLinks = (userId: string | null) => [
+const createLinks = () => [
   {
     label: "Dashboard",
     href: "#",
@@ -152,7 +152,7 @@ export default function Home() {
   });
 
   // --- Create dynamic links for sidebar ---
-  const sidebarLinks = createLinks(null);
+  const sidebarLinks = createLinks();
 
   // --- useChat Hook Integration ---
   const {
