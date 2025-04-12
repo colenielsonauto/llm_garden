@@ -339,8 +339,8 @@ const Dashboard = ({
   // const { data: session } = useSession();
   // const userId = getUserIdFromSession(session);
 
-  // *** We will add fetch calls to `/api/track` in the onClick handlers below ***
-  const trackFrontendEvent = (eventType: string, eventData: Record<string, any>) => {
+  // Use unknown for better type safety
+  const trackFrontendEvent = (eventType: string, eventData: Record<string, unknown>) => {
     // Fire-and-forget fetch call
     fetch('/api/track', {
       method: 'POST',
