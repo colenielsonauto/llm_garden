@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { Stream } from 'openai/streaming';
 import { ChatCompletionChunk } from 'openai/resources/chat/completions';
 import { GoogleGenerativeAI, GenerationConfig, Content } from '@google/generative-ai';
-import { trackEvent, getRequestDetails, getUserIdFromSession, EventInput } from '@/lib/tracking';
+import { trackEvent, getRequestDetails, getUserIdFromSession } from '@/lib/tracking';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -147,9 +147,8 @@ export async function POST(req: NextRequest) {
                 });
             }
 
-        } catch (searchError: any) {
+        } catch (searchError: unknown) {
             console.error('[API Error] Web search failed:', searchError);
-            // Track search error specifically
             trackEvent({
                 userId,
                 eventType: 'error',
@@ -160,7 +159,6 @@ export async function POST(req: NextRequest) {
                 },
                 ...requestDetails
             });
-            // Provide a generic error message to the LLM context
             searchResultsText = "An error occurred during the web search. Proceeding without search results.\n\n";
         }
     }

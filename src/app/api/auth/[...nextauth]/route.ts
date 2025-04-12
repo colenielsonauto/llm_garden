@@ -6,7 +6,7 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { MongoClient } from 'mongodb';
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 import { trackEvent, getApiRequestDetails } from '@/lib/tracking';
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest } from 'next';
 import { ObjectId } from 'mongodb';
 
 // Function to get the MongoClient promise for the adapter
@@ -80,7 +80,7 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
   },
   events: {
-      async signIn({ user, account, profile, isNewUser }) {
+      async signIn({ user, account, isNewUser }) {
           trackEvent({
               userId: user.id,
               eventType: 'login',

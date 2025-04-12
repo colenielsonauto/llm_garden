@@ -144,17 +144,15 @@ export default function Home() {
   const [open, setOpen] = useState(false);
 
   // --- Use next-auth session ---
-  const { status, data: session } = useSession({ // Get session data
+  const { status, data: session } = useSession({ 
     required: true,
     onUnauthenticated() {
       router.push('/login');
     },
   });
-  // Keep userId retrieval if needed for API calls
-  // const userId = getUserIdFromSession(session); 
 
   // --- Create dynamic links for sidebar ---
-  const sidebarLinks = createLinks(null); // Pass null for now
+  const sidebarLinks = createLinks(null);
 
   // --- useChat Hook Integration ---
   const {
@@ -342,7 +340,7 @@ const Dashboard = ({
   // const userId = getUserIdFromSession(session);
 
   // *** We will add fetch calls to `/api/track` in the onClick handlers below ***
-  const trackFrontendEvent = (eventType: string, eventData: any) => {
+  const trackFrontendEvent = (eventType: string, eventData: Record<string, any>) => {
     // Fire-and-forget fetch call
     fetch('/api/track', {
       method: 'POST',

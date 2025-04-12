@@ -7,7 +7,7 @@ import { Session } from 'next-auth'; // Import Session type
 const EVENTS_COLLECTION = 'events'; // Collection name
 
 interface EventData {
-  [key: string]: any; // Allow flexible data structure
+  [key: string]: unknown; // Use unknown instead of any for better type safety
 }
 
 export interface EventInput {
@@ -41,7 +41,7 @@ export async function trackEvent(event: EventInput): Promise<void> {
       }
     }
 
-    const result = await collection.insertOne(eventDocument);
+    await collection.insertOne(eventDocument);
     // console.log('Event tracked:', result.insertedId);
 
   } catch (error) {

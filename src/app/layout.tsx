@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
+import { ClientSideTracking } from "@/components/client-tracking";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
           geistSans.variable,
           geistMono.variable
         )}
+        suppressHydrationWarning
       >
         <ThemeProvider
           attribute="class"
@@ -42,6 +44,7 @@ export default function RootLayout({
         >
           <Providers>
             {children}
+            <ClientSideTracking />
           </Providers>
         </ThemeProvider>
       </body>

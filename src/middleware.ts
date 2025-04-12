@@ -1,40 +1,37 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+// Remove unused NextRequest import
+// import type { NextRequest } from 'next/server';
 import { withAuth, NextRequestWithAuth } from 'next-auth/middleware';
-import { trackEvent, getRequestDetails, getUserIdFromSession } from '@/lib/tracking';
+// Remove tracking imports
+// import { trackEvent, getRequestDetails, getUserIdFromSession } from '@/lib/tracking';
 
 // Use withAuth to get session info within the middleware
 export default withAuth(
   async function middleware(request: NextRequestWithAuth) {
-    const { pathname } = request.nextUrl;
-    const session = request.nextauth?.token; // Access token which contains user id based on our callbacks
-    const userId = session?.id as string | null; // Extract userId from token
-    const { ipAddress, userAgent } = getRequestDetails(request);
+    // Remove tracking logic
+    // const { pathname } = request.nextUrl;
+    // const session = request.nextauth?.token; 
+    // const userId = session?.id as string | null; 
+    // const { ipAddress, userAgent } = getRequestDetails(request);
+    // 
+    // if (!pathname.startsWith('/_next') && !pathname.startsWith('/favicon.ico') && !pathname.startsWith('/api')) {
+    //    trackEvent({
+    //      userId,
+    //      eventType: 'page_view',
+    //      eventData: { path: pathname },
+    //      ipAddress,
+    //      userAgent,
+    //    });
+    // }
 
-    // Track page view
-    // Avoid tracking static files, image optimization, etc.
-    if (!pathname.startsWith('/_next') && !pathname.startsWith('/favicon.ico') && !pathname.startsWith('/api')) {
-       trackEvent({
-         userId,
-         eventType: 'page_view',
-         eventData: { path: pathname },
-         ipAddress,
-         userAgent,
-       });
-    }
-
-    // Continue with the request/response
+    // Just continue with the request/response - auth handled by withAuth & config
     return NextResponse.next();
   },
   {
     callbacks: {
-      // Return true to always run middleware, protection is handled by config matcher
-      authorized: () => true,
+      authorized: () => true, // Run middleware always, protection via config
     },
-    // Redirect to login if token is missing, matching default behavior
-    // pages: { 
-    //   signIn: '/login' 
-    // }
+    // pages: { signIn: '/login' } // Default redirect handled
   }
 );
 
