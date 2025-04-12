@@ -7,7 +7,7 @@ import { withAuth, NextRequestWithAuth } from 'next-auth/middleware';
 
 // Use withAuth to get session info within the middleware
 export default withAuth(
-  async function middleware(_request: NextRequestWithAuth) {
+  async function middleware() {
     // Remove tracking logic
     // const { pathname } = request.nextUrl;
     // const session = request.nextauth?.token; 
