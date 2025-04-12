@@ -1,6 +1,7 @@
 import { connectToDatabase } from './mongodb';
 import { ObjectId } from 'mongodb';
-import { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server'; // Keep this for App Router API routes
+import { NextApiRequest } from 'next'; // Import this for Pages Router / certain callbacks
 import { Session } from 'next-auth'; // Import Session type
 
 const EVENTS_COLLECTION = 'events'; // Collection name
@@ -51,7 +52,7 @@ export async function trackEvent(event: EventInput): Promise<void> {
 }
 
 /**
- * Helper function to extract common request details for tracking.
+ * Helper function to extract common request details for tracking from NextRequest (API Routes, Middleware).
  */
 export function getRequestDetails(req: NextRequest): {
   ipAddress: string | null;
@@ -60,6 +61,18 @@ export function getRequestDetails(req: NextRequest): {
   // Use x-forwarded-for header primarily
   const ipAddress = req.headers.get('x-forwarded-for') ?? null;
   const userAgent = req.headers.get('user-agent') ?? null;
+  return { ipAddress, userAgent };
+}
+
+/**
+ * Helper function to extract common request details for tracking from NextApiRequest (Older Pages API, some callbacks).
+ */
+export function getApiRequestDetails(req: NextApiRequest): {
+  ipAddress: string | null;
+  userAgent: string | null;
+} {
+  const ipAddress = (req.headers['x-forwarded-for'] as string | undefined) ?? null;
+  const userAgent = (req.headers['user-agent'] as string | undefined) ?? null;
   return { ipAddress, userAgent };
 }
 

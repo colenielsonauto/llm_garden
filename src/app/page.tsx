@@ -28,6 +28,7 @@ import remarkGfm from 'remark-gfm';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from "next-auth/react";
 import { AvatarWithInitials } from '@/components/ui/avatar-initials';
+import { trackEvent, getUserIdFromSession, EventInput } from "@/lib/tracking";
 
 // Define LLM models
 const LLM_MODELS = {
@@ -72,7 +73,7 @@ const LogoIcon = () => {
 };
 
 // Sidebar Links (from Demo.tsx)
-const links = [
+const createLinks = (userId: string | null) => [
   {
     label: "Dashboard",
     href: "#",
@@ -96,7 +97,10 @@ const links = [
   },
   {
     label: "Logout",
-    onClick: () => signOut({ callbackUrl: '/login' }),
+    onClick: () => {
+        trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'logout_sidebar' } });
+        signOut({ callbackUrl: '/login' });
+    },
     icon: (
       <LogOut className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
     ),
@@ -148,6 +152,10 @@ export default function Home() {
       router.push('/login');
     },
   });
+  const userId = getUserIdFromSession(session); // Get userId for tracking
+
+  // --- Create dynamic links for sidebar ---
+  const sidebarLinks = createLinks(userId);
 
   // --- useChat Hook Integration ---
   const {
@@ -162,7 +170,8 @@ export default function Home() {
     initialMessages: [],
     body: {
       model: selectedLlm?.id ?? '',
-      useWebSearch: showSearch
+      useWebSearch: showSearch,
+      userId: userId // Pass userId to backend for potential use (optional)
     },
     onResponse: (res) => {
       if (!res.ok) {
@@ -202,6 +211,7 @@ export default function Home() {
   };
 
   const handleRemoveFile = (index: number) => {
+    trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'remove_file', fileName: files[index]?.name } });
     setFiles((prev) => prev.filter((_, i) => i !== index));
     if (uploadInputRef?.current) {
       uploadInputRef.current.value = "";
@@ -210,6 +220,7 @@ export default function Home() {
 
   const selectLlm = (llm: { id: string; name: string }) => {
     if (isLoading) return;
+    trackEvent({ userId, eventType: 'feature_use', eventData: { feature: 'model_selected', model: llm.id } });
     setSelectedLlm(llm);
   };
 
@@ -217,9 +228,20 @@ export default function Home() {
     e.preventDefault();
     if (!selectedLlm) {
       console.error("Please select a language model first.");
+      trackEvent({ userId, eventType: 'error', eventData: { errorType: 'SubmitError', message: 'Submit attempted without model selected' } });
       return;
     }
     if (input.trim() || files.length > 0) {
+      trackEvent({
+          userId, 
+          eventType: 'button_click', 
+          eventData: { 
+              buttonName: 'send_message', 
+              model: selectedLlm.id, 
+              webSearchEnabled: showSearch, 
+              fileCount: files.length 
+          } 
+      });
       handleChatSubmit(e);
     }
   };
@@ -246,7 +268,7 @@ export default function Home() {
           <div className="overflow-y-auto overflow-x-hidden">
             {open ? <Logo /> : <LogoIcon />}
             <div className="mt-4 flex flex-col gap-1">
-              {links.map((link, idx) => (
+              {sidebarLinks.map((link, idx) => (
                 <SidebarLink key={idx} link={link} />
               ))}
             </div>
@@ -330,6 +352,9 @@ const Dashboard = ({
   setIsModelDropdownOpen,
   isModelSelectorActive
 }: DashboardProps) => { // Use the defined interface
+  const { data: session } = useSession(); // Get session again if needed, or pass userId
+  const userId = getUserIdFromSession(session);
+
   return (
     <div className="flex flex-1 relative"> {/* Added relative for potential absolute positioning inside */}
       <div className="flex flex-col flex-1 w-full h-full p-6 sm:p-12 pb-20 bg-background">
@@ -450,12 +475,17 @@ const Dashboard = ({
                       <label
                         htmlFor="file-upload"
                         className={cn("hover:bg-secondary flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors", isLoading && "cursor-not-allowed opacity-50")}
+                        onClick={() => trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'attach_file_label' } })}
                       >
                         <input
                           ref={uploadInputRef}
                           type="file"
                           multiple
-                          onChange={handleFileChange}
+                          onChange={(e) => {
+                            const selectedFiles = Array.from(e.target.files || []);
+                            trackEvent({ userId, eventType: 'file_upload', eventData: { fileCount: selectedFiles.length, fileNames: selectedFiles.map(f => f.name) } });
+                            handleFileChange(e);
+                          }}
                           className="hidden"
                           id="file-upload"
                           disabled={isLoading}
@@ -468,7 +498,10 @@ const Dashboard = ({
                     <PromptInputAction tooltip={showSearch ? "Disable web search" : "Enable web search"}>
                       <button
                         type="button"
-                        onClick={() => setShowSearch(!showSearch)}
+                        onClick={() => {
+                            trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'toggle_web_search', newState: !showSearch } });
+                            setShowSearch(!showSearch);
+                        }}
                         className={cn(
                           "flex h-8 items-center gap-2 rounded-full border px-1.5 py-1 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                           showSearch
@@ -518,8 +551,8 @@ const Dashboard = ({
                       {/* Ensure selectedLlm is checked before accessing name */}
                       <PromptInputAction tooltip={selectedLlm ? selectedLlm.name : "Select Model"}>
                         <DropdownMenu onOpenChange={(open) => {
-                          setIsModelDropdownOpen(open); // Update dropdown state
-                          // Hide indicator when dropdown opens
+                          if (open) trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'open_model_dropdown' } });
+                          setIsModelDropdownOpen(open);
                           if (open) setShowNewModelIndicator(false);
                         }}>
                           <DropdownMenuTrigger asChild disabled={isLoading}>

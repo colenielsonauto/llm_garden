@@ -2,8 +2,18 @@ import NextAuth, { NextAuthOptions, User, Session } from 'next-auth';
 import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcrypt';
-import clientPromise from '../../../../../lib/mongodb';
+import { connectToDatabase } from '@/lib/mongodb';
+import { MongoClient } from 'mongodb';
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
+import { trackEvent, getApiRequestDetails } from '@/lib/tracking';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { ObjectId } from 'mongodb';
+
+// Function to get the MongoClient promise for the adapter
+const getClientPromise = (): Promise<MongoClient> => {
+  // Re-use the connectToDatabase logic which handles caching
+  return connectToDatabase().then(({ client }) => client);
+};
 
 // Export authOptions so it can be used elsewhere (e.g., for getServerSession)
 export const authOptions: NextAuthOptions = {
@@ -14,19 +24,45 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials): Promise<User | null> {
-        if (!credentials?.email || !credentials?.password) return null;
+      async authorize(credentials, req): Promise<User | null> {
+        const { ipAddress, userAgent } = getApiRequestDetails(req as NextApiRequest);
         
-        const client = await clientPromise;
-        const db = client.db();
+        if (!credentials?.email || !credentials?.password) {
+            trackEvent({
+                eventType: 'failedLogin',
+                eventData: { reason: 'Missing credentials', email: credentials?.email },
+                ipAddress,
+                userAgent
+            });
+            return null;
+        }
+        
+        const { db } = await connectToDatabase();
         const usersCollection = db.collection('users');
         
         const user = await usersCollection.findOne({ email: credentials.email });
 
-        if (!user || !user.password) return null;
+        if (!user || !user.password) {
+            trackEvent({
+                eventType: 'failedLogin',
+                eventData: { reason: 'User not found', email: credentials.email },
+                ipAddress,
+                userAgent
+            });
+            return null;
+        }
 
         const isValidPassword = await bcrypt.compare(credentials.password, user.password);
-        if (!isValidPassword) return null;
+        if (!isValidPassword) {
+            trackEvent({
+                userId: user._id,
+                eventType: 'failedLogin',
+                eventData: { reason: 'Invalid password', email: credentials.email },
+                ipAddress,
+                userAgent
+            });
+            return null;
+        }
 
         return {
           id: user._id.toString(),
@@ -36,12 +72,30 @@ export const authOptions: NextAuthOptions = {
       }
     })
   ],
-  adapter: MongoDBAdapter(clientPromise),
+  adapter: MongoDBAdapter(getClientPromise(), { databaseName: 'gardendb'}),
   session: {
     strategy: 'jwt',
   },
   pages: {
     signIn: '/login',
+  },
+  events: {
+      async signIn({ user, account, profile, isNewUser }) {
+          trackEvent({
+              userId: user.id,
+              eventType: 'login',
+              eventData: { method: account?.provider ?? 'credentials', isNewUser: !!isNewUser },
+          });
+          try {
+              const { db } = await connectToDatabase();
+              await db.collection('users').updateOne(
+                  { _id: new ObjectId(user.id) }, 
+                  { $set: { lastLoginAt: new Date(), lastActiveAt: new Date() } }
+              );
+          } catch (e) {
+              console.error('[Auth Event Error] Failed to update lastLoginAt/lastActiveAt:', e);
+          }
+      },
   },
   callbacks: {
     async jwt({ token, user }: { token: JWT; user?: User }) {

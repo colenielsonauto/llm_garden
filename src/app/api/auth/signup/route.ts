@@ -1,59 +1,72 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
-import clientPromise from '../../../../../lib/mongodb'; // Corrected relative path
+import { connectToDatabase } from '@/lib/mongodb';
+// Import tracking utilities
+import { trackEvent, getRequestDetails } from '@/lib/tracking';
+import { ObjectId } from 'mongodb';
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
+  // Get request details early for tracking
+  const requestDetails = getRequestDetails(req);
+  let userId: ObjectId | null = null; // To store the new user ID for tracking
+
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password } = await req.json();
 
-    // Basic validation
     if (!name || !email || !password) {
-      return NextResponse.json({ message: 'Missing name, email, or password' }, { status: 400 });
+      return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
-    // TODO: Add email format validation
-    // TODO: Add more robust password validation
-
-    const client = await clientPromise;
-    const db = client.db(); // Use default DB
+    const { db } = await connectToDatabase();
     const usersCollection = db.collection('users');
 
     // Check if user already exists
     const existingUser = await usersCollection.findOne({ email });
     if (existingUser) {
-      return NextResponse.json({ message: 'User already exists with this email' }, { status: 409 });
+      return NextResponse.json({ message: 'User with this email already exists' }, { status: 409 }); // Conflict
     }
 
-    // Hash the password
+    // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Insert the new user
+    // Insert new user
     const result = await usersCollection.insertOne({
       name,
       email,
       password: hashedPassword,
-      createdAt: new Date(),
+      createdAt: new Date(), // Add createdAt timestamp
+      // Initialize other fields if necessary
+      lastLoginAt: null,
+      lastActiveAt: null,
     });
 
-    if (!result.insertedId) {
-        throw new Error('Failed to create user.');
-    }
+    userId = result.insertedId; // Capture the inserted ID
 
-    // Return success response (don't send back password hash)
-    const newUser = {
-      _id: result.insertedId,
-      name,
-      email,
-      createdAt: new Date(),
-    };
+    // Track successful signup
+    trackEvent({
+        userId: userId, // Use the newly created ID
+        eventType: 'signup',
+        eventData: { email: email }, // Include email or other relevant signup data
+        ...requestDetails
+    });
 
-    return NextResponse.json({ message: 'User created successfully', user: newUser }, { status: 201 });
+    return NextResponse.json({ message: 'User created successfully', userId: result.insertedId }, { status: 201 });
 
   } catch (error) {
-    console.error('Signup API Error:', error);
-    const message = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ message }, { status: 500 });
+    console.error('[Signup API Error]:', error);
+    // Track signup error
+    trackEvent({
+        // userId will be null here as signup failed before or during insert
+        eventType: 'error',
+        eventData: {
+            errorType: 'SignupAPIError',
+            message: error instanceof Error ? error.message : 'Unknown signup error',
+            stack: error instanceof Error ? error.stack : undefined,
+        },
+        ...requestDetails
+    });
+    return NextResponse.json({ message: 'Internal server error during signup' }, { status: 500 });
   }
 }
 
