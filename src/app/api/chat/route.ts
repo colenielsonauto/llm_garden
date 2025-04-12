@@ -3,6 +3,9 @@ import OpenAI from 'openai';
 import { Stream } from 'openai/streaming';
 import { ChatCompletionChunk } from 'openai/resources/chat/completions';
 import { GoogleGenerativeAI, GenerationConfig, Content } from '@google/generative-ai';
+import { trackEvent, getRequestDetails, getUserIdFromSession, EventInput } from '@/lib/tracking';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // Define the expected structure for Grok API stream chunks (adjust if needed based on actual API response)
 interface GrokChatCompletionChunk {
@@ -42,6 +45,8 @@ export async function POST(req: NextRequest) {
   let selectedApiKey: string | undefined;
   let requestedModelId: string | undefined;
   let responseStream: ReadableStream<Uint8Array>; // To hold the final stream
+  let userId: string | null = null;
+  let requestDetails: { ipAddress: string | null; userAgent: string | null } | null = null;
 
   // Remove debug environment variables logging
   // console.log('[API Debug] Environment variables:', {
@@ -52,6 +57,16 @@ export async function POST(req: NextRequest) {
   // });
 
   try {
+    // Get request details early
+    requestDetails = getRequestDetails(req);
+    
+    // Get user session
+    // Note: Pass req directly if using edge runtime, otherwise pass req/res objects for node
+    // Since we removed edge runtime, we might need to adjust how session is retrieved if req/res are needed
+    // For App Router API routes, passing the authOptions directly might work
+    const session = await getServerSession(authOptions);
+    userId = getUserIdFromSession(session);
+
     const body = await req.json();
     // Destructure useWebSearch along with messages and model
     const { messages, model, useWebSearch }: { messages: InputMessage[], model: string, useWebSearch?: boolean } = body;
@@ -59,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     const latestMessageContent = messages?.[messages.length - 1]?.content?.substring(0, 50) + '...' || 'no message content';
     // Log the useWebSearch flag
-    console.log('[API Route Start] Received:', { message: latestMessageContent, model: requestedModelId, useWebSearch });
+    console.log('[API Route Start] Received:', { message: latestMessageContent, model: requestedModelId, useWebSearch, userId });
 
     if (!messages || messages.length === 0 || !requestedModelId) {
       console.error('[API Validation Error] Missing messages or model');
@@ -69,6 +84,13 @@ export async function POST(req: NextRequest) {
     // --- START: Web Search Logic --- 
     let searchResultsText: string | null = null;
     if (useWebSearch) {
+        // Track web search usage
+        trackEvent({
+            userId,
+            eventType: 'feature_use',
+            eventData: { feature: 'web_search_initiated', query: messages[messages.length - 1]?.content?.substring(0, 100) }, // Log first 100 chars
+            ...requestDetails
+        });
         console.log('[API Logic] Web search enabled. Performing search...');
         try {
             const query = messages[messages.length - 1]?.content; // Use last message as query
@@ -108,13 +130,36 @@ export async function POST(req: NextRequest) {
                     searchResultsText += `${index + 1}. ${title}\n   Snippet: ${snippet.replace(/\n/g, ' ')}\n   URL: ${link}\n\n`; // Replace newlines in snippet
                 });
                 console.log('[API Logic] Web search successful. Results formatted.');
+                trackEvent({
+                    userId,
+                    eventType: 'feature_use',
+                    eventData: { feature: 'web_search_success', resultsCount: searchData.items.length }, 
+                    ...requestDetails
+                });
             } else {
                 console.log('[API Logic] Web search returned no results.');
                 searchResultsText = "Web search returned no relevant results.\n\n"; // Inform LLM
+                trackEvent({
+                    userId,
+                    eventType: 'feature_use',
+                    eventData: { feature: 'web_search_no_results' }, 
+                    ...requestDetails
+                });
             }
 
-        } catch (searchError) {
+        } catch (searchError: any) {
             console.error('[API Error] Web search failed:', searchError);
+            // Track search error specifically
+            trackEvent({
+                userId,
+                eventType: 'error',
+                eventData: {
+                    errorType: 'GoogleSearchAPIError',
+                    message: searchError instanceof Error ? searchError.message : 'Unknown search error',
+                    context: 'Error during Google Search API call'
+                },
+                ...requestDetails
+            });
             // Provide a generic error message to the LLM context
             searchResultsText = "An error occurred during the web search. Proceeding without search results.\n\n";
         }
@@ -153,6 +198,14 @@ ${processedMessages[lastMessageIndex].content}`;
     }
 
     // --- API Key and Client Setup ---
+    // Track model usage before calling the provider
+    trackEvent({
+        userId,
+        eventType: 'feature_use',
+        eventData: { model: requestedModelId }, 
+        ...requestDetails
+    });
+    
     if (requestedModelId === 'gpt-4.5-preview' || requestedModelId === 'gpt-4o') {
         // --- OpenAI Handling ---
         if (requestedModelId === 'gpt-4.5-preview') {
@@ -373,9 +426,20 @@ ${processedMessages[lastMessageIndex].content}`;
         });
 
     } else {
-      // --- Unsupported Model ---
+      // Track unsupported model error
+      const errorMsg = `Model ${requestedModelId} not supported or accessible`;
+      trackEvent({
+          userId,
+          eventType: 'error',
+          eventData: {
+              errorType: 'UnsupportedModelError',
+              message: errorMsg,
+              modelRequested: requestedModelId,
+          },
+          ...requestDetails
+      });
       console.error(`[API Model Error] Unsupported model requested: ${requestedModelId}`);
-      return NextResponse.json({ error: `Model ${requestedModelId} not supported or accessible` }, { status: 400 });
+      return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
     // --- Return the appropriate stream ---
@@ -388,9 +452,24 @@ ${processedMessages[lastMessageIndex].content}`;
     });
 
   } catch (error: unknown) {
-    console.error('[API Route Error] Unhandled error in POST handler:', error);
-    // Check if it's an Error object for a better message
+    // Ensure requestDetails are available here if possible, might be null if error happens early
+    const safeRequestDetails = requestDetails ?? { ipAddress: null, userAgent: null }; 
+    // Log the general API error
     const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    const stack = error instanceof Error ? error.stack : undefined;
+    trackEvent({
+        userId, // userId might also be null if session fetch failed
+        eventType: 'error',
+        eventData: {
+            errorType: 'APIHandlerError',
+            message,
+            stack,
+            context: 'General catch block in /api/chat POST handler'
+        },
+        ...safeRequestDetails
+    });
+
+    console.error('[API Route Error] Unhandled error in POST handler:', error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 } 

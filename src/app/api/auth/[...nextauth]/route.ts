@@ -5,7 +5,8 @@ import bcrypt from 'bcrypt';
 import clientPromise from '../../../../../lib/mongodb';
 import { MongoDBAdapter } from "@auth/mongodb-adapter"
 
-const authOptions: NextAuthOptions = {
+// Export authOptions so it can be used elsewhere (e.g., for getServerSession)
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
