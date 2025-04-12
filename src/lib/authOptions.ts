@@ -7,7 +7,6 @@ import { MongoClient } from 'mongodb';
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { trackEvent, getApiRequestDetails } from '@/lib/tracking'; 
 import { NextApiRequest } from 'next'; 
-import { NextRequest } from 'next/server'; // Needed for getRequestDetails type checking if used via req
 import { ObjectId } from 'mongodb';
 
 // Function to get the MongoClient promise for the adapter
