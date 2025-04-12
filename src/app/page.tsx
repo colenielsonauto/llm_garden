@@ -28,7 +28,6 @@ import remarkGfm from 'remark-gfm';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from "next-auth/react";
 import { AvatarWithInitials } from '@/components/ui/avatar-initials';
-import { trackEvent, getUserIdFromSession, EventInput } from "@/lib/tracking";
 
 // Define LLM models
 const LLM_MODELS = {
@@ -98,7 +97,6 @@ const createLinks = (userId: string | null) => [
   {
     label: "Logout",
     onClick: () => {
-        trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'logout_sidebar' } });
         signOut({ callbackUrl: '/login' });
     },
     icon: (
@@ -152,10 +150,11 @@ export default function Home() {
       router.push('/login');
     },
   });
-  const userId = getUserIdFromSession(session); // Get userId for tracking
+  // Keep userId retrieval if needed for API calls
+  // const userId = getUserIdFromSession(session); 
 
   // --- Create dynamic links for sidebar ---
-  const sidebarLinks = createLinks(userId);
+  const sidebarLinks = createLinks(null); // Pass null for now
 
   // --- useChat Hook Integration ---
   const {
@@ -171,7 +170,6 @@ export default function Home() {
     body: {
       model: selectedLlm?.id ?? '',
       useWebSearch: showSearch,
-      userId: userId // Pass userId to backend for potential use (optional)
     },
     onResponse: (res) => {
       if (!res.ok) {
@@ -211,7 +209,6 @@ export default function Home() {
   };
 
   const handleRemoveFile = (index: number) => {
-    trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'remove_file', fileName: files[index]?.name } });
     setFiles((prev) => prev.filter((_, i) => i !== index));
     if (uploadInputRef?.current) {
       uploadInputRef.current.value = "";
@@ -220,7 +217,6 @@ export default function Home() {
 
   const selectLlm = (llm: { id: string; name: string }) => {
     if (isLoading) return;
-    trackEvent({ userId, eventType: 'feature_use', eventData: { feature: 'model_selected', model: llm.id } });
     setSelectedLlm(llm);
   };
 
@@ -228,20 +224,9 @@ export default function Home() {
     e.preventDefault();
     if (!selectedLlm) {
       console.error("Please select a language model first.");
-      trackEvent({ userId, eventType: 'error', eventData: { errorType: 'SubmitError', message: 'Submit attempted without model selected' } });
       return;
     }
     if (input.trim() || files.length > 0) {
-      trackEvent({
-          userId, 
-          eventType: 'button_click', 
-          eventData: { 
-              buttonName: 'send_message', 
-              model: selectedLlm.id, 
-              webSearchEnabled: showSearch, 
-              fileCount: files.length 
-          } 
-      });
       handleChatSubmit(e);
     }
   };
@@ -352,8 +337,23 @@ const Dashboard = ({
   setIsModelDropdownOpen,
   isModelSelectorActive
 }: DashboardProps) => { // Use the defined interface
-  const { data: session } = useSession(); // Get session again if needed, or pass userId
-  const userId = getUserIdFromSession(session);
+  // Remove session/userId fetching if not directly needed here
+  // const { data: session } = useSession();
+  // const userId = getUserIdFromSession(session);
+
+  // *** We will add fetch calls to `/api/track` in the onClick handlers below ***
+  const trackFrontendEvent = (eventType: string, eventData: any) => {
+    // Fire-and-forget fetch call
+    fetch('/api/track', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ eventType, eventData }),
+    }).catch(error => {
+      console.warn('[Frontend Tracking] Failed to send event to API:', error);
+    });
+  };
 
   return (
     <div className="flex flex-1 relative"> {/* Added relative for potential absolute positioning inside */}
@@ -475,7 +475,7 @@ const Dashboard = ({
                       <label
                         htmlFor="file-upload"
                         className={cn("hover:bg-secondary flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors", isLoading && "cursor-not-allowed opacity-50")}
-                        onClick={() => trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'attach_file_label' } })}
+                        onClick={() => trackFrontendEvent('button_click', { buttonName: 'attach_file_label' })}
                       >
                         <input
                           ref={uploadInputRef}
@@ -483,7 +483,7 @@ const Dashboard = ({
                           multiple
                           onChange={(e) => {
                             const selectedFiles = Array.from(e.target.files || []);
-                            trackEvent({ userId, eventType: 'file_upload', eventData: { fileCount: selectedFiles.length, fileNames: selectedFiles.map(f => f.name) } });
+                            trackFrontendEvent('file_upload', { fileCount: selectedFiles.length, fileNames: selectedFiles.map(f => f.name) });
                             handleFileChange(e);
                           }}
                           className="hidden"
@@ -499,7 +499,7 @@ const Dashboard = ({
                       <button
                         type="button"
                         onClick={() => {
-                            trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'toggle_web_search', newState: !showSearch } });
+                            trackFrontendEvent('button_click', { buttonName: 'toggle_web_search', newState: !showSearch });
                             setShowSearch(!showSearch);
                         }}
                         className={cn(
@@ -551,7 +551,7 @@ const Dashboard = ({
                       {/* Ensure selectedLlm is checked before accessing name */}
                       <PromptInputAction tooltip={selectedLlm ? selectedLlm.name : "Select Model"}>
                         <DropdownMenu onOpenChange={(open) => {
-                          if (open) trackEvent({ userId, eventType: 'button_click', eventData: { buttonName: 'open_model_dropdown' } });
+                          if (open) trackFrontendEvent('button_click', { buttonName: 'open_model_dropdown' });
                           setIsModelDropdownOpen(open);
                           if (open) setShowNewModelIndicator(false);
                         }}>
