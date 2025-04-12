@@ -21,6 +21,14 @@ interface InputMessage {
   content: string;
 }
 
+// Define a basic interface for Google Search result items
+interface GoogleSearchItem {
+  title?: string;
+  link?: string;
+  snippet?: string;
+  // Add other potentially useful fields if needed, e.g., from item.pagemap.cse_image[0].src
+}
+
 // Remove Edge Runtime
 // export const runtime = 'edge'; 
 
@@ -91,7 +99,8 @@ export async function POST(req: NextRequest) {
 
             if (searchData.items && searchData.items.length > 0) {
                 searchResultsText = "Web search results:\n\n";
-                searchData.items.forEach((item: any, index: number) => {
+                // Use the defined interface instead of any
+                searchData.items.forEach((item: GoogleSearchItem, index: number) => {
                     // Basic check for title, snippet, link
                     const title = item.title || 'No Title';
                     const snippet = item.snippet || 'No Snippet';
