@@ -5,7 +5,7 @@ import { ChatCompletionChunk } from 'openai/resources/chat/completions';
 import { GoogleGenerativeAI, GenerationConfig, Content } from '@google/generative-ai';
 import { trackEvent, getRequestDetails, getUserIdFromSession } from '@/lib/tracking';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 
 // Define the expected structure for Grok API stream chunks (adjust if needed based on actual API response)
 interface GrokChatCompletionChunk {

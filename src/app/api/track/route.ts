@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Use exported options
+import { authOptions } from '@/lib/authOptions';
 import { trackEvent, getRequestDetails, getUserIdFromSession } from '@/lib/tracking';
 import { Session } from 'next-auth'; // Import Session type
 
