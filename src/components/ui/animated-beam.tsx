@@ -92,11 +92,9 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
     };
 
     // Initialize ResizeObserver
-    const resizeObserver = new ResizeObserver((entries) => {
-      // Change let to const and mark as unused
-      for (const _entry of entries) {
-        updatePath();
-      }
+    const resizeObserver = new ResizeObserver(() => {
+      // No need to loop entries, just update the path on any resize event
+      updatePath();
     });
 
     // Observe the container element
@@ -104,10 +102,10 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
       resizeObserver.observe(containerRef.current);
     }
 
-    // Call the updatePath initially to set the initial path
+    // Call the updatePath initially
     updatePath();
 
-    // Clean up the observer on component unmount
+    // Clean up
     return () => {
       resizeObserver.disconnect();
     };
