@@ -126,6 +126,7 @@ interface DashboardProps {
   setShowNewModelIndicator: React.Dispatch<React.SetStateAction<boolean>>;
   setIsModelDropdownOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isModelSelectorActive: boolean | null; // Allow null from calculation
+  status: 'authenticated' | 'loading' | 'unauthenticated' | undefined;
 }
 
 export default function ChatPage() {
@@ -143,8 +144,8 @@ export default function ChatPage() {
   // --- Sidebar State ---
   const [open, setOpen] = useState(false);
 
-  // --- Use next-auth session (NOT required for page load) ---
-  const { status, data: session } = useSession(); 
+  // --- Use next-auth session --- status might be undefined during SSR
+  const { status, data: session } = useSession();
 
   // --- Create dynamic links for sidebar (can be simplified if needed) ---
   const sidebarLinks = createLinks();
@@ -298,7 +299,7 @@ export default function ChatPage() {
       <Dashboard
         selectedLlm={selectedLlm}
         messages={messages}
-        input={input}
+        input={input ?? ''}
         handlePromptInputChange={handlePromptInputChange}
         handleFormSubmit={handleFormSubmit}
         isLoading={isLoading}
@@ -315,6 +316,7 @@ export default function ChatPage() {
         setShowNewModelIndicator={setShowNewModelIndicator}
         setIsModelDropdownOpen={setIsModelDropdownOpen}
         isModelSelectorActive={isModelSelectorActive}
+        status={status}
       />
     </div>
   );
@@ -340,12 +342,9 @@ const Dashboard = ({
   showNewModelIndicator,
   setShowNewModelIndicator,
   setIsModelDropdownOpen,
-  isModelSelectorActive
-}: DashboardProps) => { // Use the defined interface
-  // Remove session/userId fetching if not directly needed here
-  // const { data: session } = useSession();
-  // const userId = getUserIdFromSession(session);
-
+  isModelSelectorActive,
+  status
+}: DashboardProps) => {
   // Use unknown for better type safety
   const trackFrontendEvent = (eventType: string, eventData: Record<string, unknown>) => {
     // Fire-and-forget fetch call
@@ -648,7 +647,7 @@ const Dashboard = ({
 
                  </div>
 
-                 {/* Submit Button */}
+                 {/* Submit Button - Use the status prop */}
                  <PromptInputAction
                    tooltip={status !== 'authenticated' ? 'Sign in to send' : (isLoading ? "Stop generation" : "Send message")}
                  >
