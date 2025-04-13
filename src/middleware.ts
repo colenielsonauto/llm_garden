@@ -1,37 +1,48 @@
+import { withAuth, NextRequestWithAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 // Remove unused NextRequest import
 // import type { NextRequest } from 'next/server';
-import { withAuth } from 'next-auth/middleware';
 // Remove tracking imports
 // import { trackEvent, getRequestDetails, getUserIdFromSession } from '@/lib/tracking';
 
 // Use withAuth to get session info within the middleware
 export default withAuth(
-  async function middleware() {
-    // Remove tracking logic
-    // const { pathname } = request.nextUrl;
-    // const session = request.nextauth?.token; 
-    // const userId = session?.id as string | null; 
-    // const { ipAddress, userAgent } = getRequestDetails(request);
-    // 
-    // if (!pathname.startsWith('/_next') && !pathname.startsWith('/favicon.ico') && !pathname.startsWith('/api')) {
-    //    trackEvent({
-    //      userId,
-    //      eventType: 'page_view',
-    //      eventData: { path: pathname },
-    //      ipAddress,
-    //      userAgent,
-    //    });
+  // `withAuth` augments your `Request` with the user's token.
+  function middleware(request: NextRequestWithAuth) {
+    // console.log(request.nextUrl.pathname)
+    // console.log(request.nextauth.token)
+
+    const { pathname } = request.nextUrl;
+    const token = request.nextauth.token;
+
+    // If user is logged in and tries to access /login, redirect to /chat
+    if (pathname.startsWith('/login') && token) {
+      return NextResponse.redirect(new URL('/chat', request.url));
+    }
+
+    // --- Add other protected route logic here if needed --- 
+    // Example: Protect a hypothetical /settings page
+    // if (pathname.startsWith('/settings') && !token) {
+    //   return NextResponse.redirect(new URL('/login?callbackUrl=' + pathname, request.url));
     // }
 
-    // Just continue with the request/response - auth handled by withAuth & config
-    return NextResponse.next();
+    // Allow the request to proceed for all other cases 
+    // (including unauthenticated access to '/' and '/chat')
+    return NextResponse.next(); 
   },
   {
     callbacks: {
-      authorized: () => true, // Run middleware always, protection via config
+      authorized: ({ token }) => {
+        // This callback is used by `withAuth` to determine if the basic
+        // authentication check passes. We return true to always run the middleware function,
+        // allowing us to handle redirects and public pages within the function itself.
+        return true; 
+      },
     },
-    // pages: { signIn: '/login' } // Default redirect handled
+    // Specify login page if needed for default redirection (though handled in middleware now)
+    // pages: {
+    //   signIn: '/login',
+    // }
   }
 );
 
@@ -40,15 +51,15 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - /api/auth/ (ANY auth API routes including callbacks)
-     * - /login (the login page)
-     * - /terms (the terms page)
-     * - /privacy (the privacy policy page)
-     * - /_next/static (static files)
-     * - /_next/image (image optimization files)
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * // Removed /api/chat and / from exclusion - protection should apply
+     * - images (public image files if you have an /images folder)
      */
-    '/((?!api/auth/|login|terms|privacy|_next/static|_next/image|favicon.ico).*)', 
+    '/((?!api|_next/static|_next/image|favicon.ico|images).*)', // Keep existing matcher
+    '/login', // Ensure /login is explicitly included if needed for the redirect logic
+    // Add other specific routes here if the general matcher doesn't cover them
+    // '/chat', // Included by the general matcher
   ],
 }; 

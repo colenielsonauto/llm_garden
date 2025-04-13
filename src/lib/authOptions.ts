@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user._id.toString(),
-          name: user.name,
+          name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name,
           email: user.email,
         };
       }

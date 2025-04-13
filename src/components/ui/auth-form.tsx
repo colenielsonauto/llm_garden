@@ -9,6 +9,11 @@ import { useTheme } from "next-themes"
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+// Import new date field components
+import { JollyDateField } from "@/components/ui/datefield"
+import { DateValue } from "react-aria-components"; // For DateField value type
+// Import Label from field
+import { Label } from "@/components/ui/field";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   className?: string
@@ -26,79 +31,142 @@ const Button: React.FC<ButtonProps> = ({ children, className, ...props }) => (
 )
 
 const AuthForm: React.FC = () => {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true); // Default to Sign Up
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const [step, setStep] = useState(1); // State for multi-step form
+
+  // State for new fields
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [birthday, setBirthday] = useState<DateValue | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
-    setError(null); // Clear error on mode switch
+    setStep(1); // Reset step when toggling mode
+    setError(null);
+    // Clear all fields on mode toggle
+    setFirstName('');
+    setLastName('');
+    setBirthday(null);
+    setEmail('');
+    setPassword('');
   };
 
-  const handleAuthSubmit = async (formData: Record<string, string>) => {
+  const handleNextStep = () => {
+    // Basic validation for step 1
+    if (!firstName || !lastName || !birthday) {
+        setError('Please fill in all fields for step 1.');
+        return;
+    }
+    setError(null);
+    setStep(2);
+  };
+
+  const handleAuthSubmit = async () => {
     setIsLoading(true);
     setError(null);
 
-    if (isSignUp) {
-      // --- Handle Signup --- 
-      const endpoint = '/api/auth/signup';
-      const body = JSON.stringify({ name: formData.name, email: formData.email, password: formData.password });
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: body,
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.message || 'Signup failed');
-        }
-        // Signup successful - maybe prompt user to login now?
-        console.log('Signup successful:', data);
-        // Automatically switch to login mode after successful signup
-        setIsSignUp(false);
-        // Optionally show a success message instead of error
-        // setError("Account created! Please sign in."); 
-      } catch (err: unknown) {
-        console.error("Signup error:", err);
-        let message = 'An unexpected error occurred during signup.';
-        if (err instanceof Error) {
-            message = err.message;
-        }
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      // --- Handle Login using next-auth (using callbackUrl) ---
-      try {
-        const result = await signIn('credentials', {
-          email: formData.email,
-          password: formData.password,
-          redirect: false,
-        });
-
-        if (result?.error) {
-          // Handle authentication errors (e.g., wrong password)
-          console.error("Login error from next-auth:", result.error);
-          setError('Invalid email or password.'); 
-        } else if (result?.ok) {
-            // Explicitly redirect on success
-            router.push('/');
-        } else {
-            // Handle cases where signIn resolves without ok or error (should be rare)
-             console.error("Unexpected signIn result:", result);
-             setError('An unexpected issue occurred during login.');
+    if (isSignUp && step === 2) {
+        // Final signup submission
+        if (!email || !password) {
+             setError('Please enter email and password.');
+             setIsLoading(false);
+             return;
         }
 
-      } catch (err) {
-        // Handle network errors or other issues calling signIn
-        console.error("Error calling signIn:", err);
-        setError('An error occurred connecting to the server.');
-      } finally {
-        setIsLoading(false);
-      }
+        const endpoint = '/api/auth/signup';
+        // Format birthday for backend (e.g., ISO string)
+        const birthdayString = birthday?.toString(); // Or format as YYYY-MM-DD
+        const body = JSON.stringify({ 
+            firstName, 
+            lastName, 
+            birthday: birthdayString, 
+            email, 
+            password 
+        });
+
+        try {
+            const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: body,
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Signup failed');
+            }
+            console.log('Signup successful:', data);
+            
+            // --- Auto-login after successful signup ---
+            console.log('Attempting auto-login after signup...');
+            const loginResult = await signIn('credentials', {
+                email, // Use the email just signed up with
+                password, // Use the password just signed up with
+                redirect: false, // Prevent default redirect
+            });
+
+            if (loginResult?.error) {
+                console.error("Auto-login failed after signup:", loginResult.error);
+                // Signup worked, but auto-login failed. Redirect to login page with error.
+                setError('Account created, but auto-login failed. Please sign in manually.');
+                setIsSignUp(false); // Switch to login view
+                setStep(1); // Reset step
+            } else if (loginResult?.ok) {
+                console.log('Auto-login successful.');
+                // Clear form fields before redirecting
+                setFirstName(''); setLastName(''); setBirthday(null);
+                setEmail(''); setPassword('');
+                // Redirect to the main application page
+                router.push('/'); 
+            } else {
+                 // Unexpected signIn result
+                 console.error("Unexpected signIn result after signup:", loginResult);
+                 setError('Account created, but failed to automatically log in. Please sign in manually.');
+                 setIsSignUp(false); // Switch to login view
+                 setStep(1); // Reset step
+            }
+            // No need to setIsLoading(false) here as redirection happens or error is set
+
+        } catch (err: unknown) {
+            console.error("Signup error:", err);
+            let message = 'An unexpected error occurred during signup.';
+            if (err instanceof Error) {
+                message = err.message;
+            }
+            setError(message);
+            setIsLoading(false); // Ensure loading stops on signup fetch error
+        }
+    } else { // Handle Login (step doesn't matter for login)
+        // --- Handle Login --- (logic remains similar)
+        if (!email || !password) {
+            setError('Please enter email and password.');
+            setIsLoading(false);
+            return;
+        }
+        try {
+            const result = await signIn('credentials', {
+            email,
+            password,
+            redirect: false,
+            });
+            // ... (rest of login error/success handling) ...
+             if (result?.error) {
+              setError('Invalid email or password.'); 
+            } else if (result?.ok) {
+                router.push('/');
+            } else {
+                 setError('An unexpected issue occurred during login.');
+            }
+        } catch (err) {
+            console.error("Error calling signIn:", err);
+            setError('An error occurred connecting to the server.');
+        } finally {
+            setIsLoading(false);
+        }
     }
   };
 
@@ -117,12 +185,32 @@ const AuthForm: React.FC = () => {
             {error}
           </div>
         )}
-        <LoginForm
-            isSignUp={isSignUp}
-            onSubmit={handleAuthSubmit}
-            isLoading={isLoading}
-        />
-        <TermsAndConditions isSignUp={isSignUp} />
+        {/* Render form based on step and mode */}
+        {isSignUp ? (
+            // Signup Flow
+            <SignUpForm 
+                step={step} 
+                onNextStep={handleNextStep} 
+                onSubmit={handleAuthSubmit} 
+                isLoading={isLoading}
+                firstName={firstName} setFirstName={setFirstName}
+                lastName={lastName} setLastName={setLastName}
+                birthday={birthday} setBirthday={setBirthday}
+                email={email} setEmail={setEmail}
+                password={password} setPassword={setPassword}
+            />
+        ) : (
+            // Login Flow
+            <LoginForm 
+                onSubmit={handleAuthSubmit} 
+                isLoading={isLoading}
+                email={email} setEmail={setEmail}
+                password={password} setPassword={setPassword}
+            />
+        )}
+        
+        {/* Only show terms for final signup step */} 
+        {(isSignUp && step === 2) && <TermsAndConditions />} 
       </motion.div>
       <BackgroundDecoration />
     </div>
@@ -159,131 +247,201 @@ const Header: React.FC<HeaderProps> = ({ isSignUp, toggleMode }) => (
   </div>
 )
 
+// --- LOGIN FORM COMPONENT --- (Separate Component)
 interface LoginFormProps {
-    isSignUp: boolean;
-    onSubmit: (formData: Record<string, string>) => Promise<void>;
+    onSubmit: () => Promise<void>; // Changed to trigger function without args
     isLoading: boolean;
+    email: string;
+    setEmail: React.Dispatch<React.SetStateAction<string>>;
+    password: string;
+    setPassword: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ isSignUp, onSubmit, isLoading }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading, email, setEmail, password, setPassword }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-
-    const formData: Record<string, string> = { email, password };
-    if (isSignUp) {
-        formData.name = name;
-    }
-    onSubmit(formData);
+    onSubmit(); // Call the submit handler passed from AuthForm
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      {isSignUp && (
-        <div className="mb-3">
-          <label
-            htmlFor="name-input"
-            className="mb-1.5 block text-zinc-500 dark:text-zinc-400"
-          >
-            Name
-          </label>
-          <input
-            id="name-input"
-            type="text"
-            placeholder="Your Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full rounded-md border border-zinc-300 dark:border-zinc-700
-            bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-800 dark:text-zinc-200
-            placeholder-zinc-400 dark:placeholder-zinc-500
-            ring-1 ring-transparent transition-shadow focus:outline-0 focus:ring-[#ad4f11]"
-            disabled={isLoading}
+       {/* Email Input */}
+       <div className="mb-3">
+         <Label htmlFor="email-input">Email</Label>
+         <input
+           id="email-input"
+           type="email"
+           placeholder="your.email@provider.com"
+           value={email}
+           onChange={(e) => setEmail(e.target.value)}
+           required
+           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+           disabled={isLoading}
+         />
+       </div>
+       {/* Password Input */}
+       <div className="mb-3">
+         <div className="mb-1.5 flex items-end justify-between">
+            <Label htmlFor="password-input">Password</Label>
+            <a href="#" className="text-sm text-[#ad4f11] dark:text-[#ad4f11] hover:underline">Forgot?</a>
+         </div>
+         <input
+           id="password-input"
+           type="password"
+           placeholder="••••••••••••"
+           value={password}
+           onChange={(e) => setPassword(e.target.value)}
+           required
+           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+           disabled={isLoading}
+         />
+       </div>
+       {/* Submit Button */}
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Signing In..." : "Sign In"}
+        </Button>
+    </form>
+  );
+};
+
+// --- SIGNUP FORM COMPONENT --- (New Multi-Step Component)
+interface SignUpFormProps {
+    step: number;
+    onNextStep: () => void;
+    onSubmit: () => Promise<void>;
+    isLoading: boolean;
+    firstName: string;
+    setFirstName: React.Dispatch<React.SetStateAction<string>>;
+    lastName: string;
+    setLastName: React.Dispatch<React.SetStateAction<string>>;
+    birthday: DateValue | null;
+    setBirthday: React.Dispatch<React.SetStateAction<DateValue | null>>;
+    email: string;
+    setEmail: React.Dispatch<React.SetStateAction<string>>;
+    password: string;
+    setPassword: React.Dispatch<React.SetStateAction<string>>;
+}
+
+const SignUpForm: React.FC<SignUpFormProps> = ({ 
+    step, 
+    onNextStep, 
+    onSubmit, 
+    isLoading, 
+    firstName, setFirstName, 
+    lastName, setLastName, 
+    birthday, setBirthday,
+    email, setEmail,
+    password, setPassword
+}) => {
+
+  const handleFinalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLoading) return;
+    onSubmit(); // Call the final submit handler passed from AuthForm
+  }
+
+  return (
+    <form onSubmit={handleFinalSubmit} className="space-y-3">
+      {step === 1 && (
+        <>
+          {/* First Name Input */}
+           <div className="mb-3">
+             <Label htmlFor="firstName-input">First Name</Label>
+             <input
+               id="firstName-input"
+               type="text"
+               placeholder="First Name"
+               value={firstName}
+               onChange={(e) => setFirstName(e.target.value)}
+               required
+               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+               disabled={isLoading}
+             />
+           </div>
+           {/* Last Name Input */}
+            <div className="mb-3">
+             <Label htmlFor="lastName-input">Last Name</Label>
+             <input
+               id="lastName-input"
+               type="text"
+               placeholder="Last Name"
+               value={lastName}
+               onChange={(e) => setLastName(e.target.value)}
+               required
+               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+               disabled={isLoading}
+             />
+           </div>
+          {/* Birthday Input */}
+          <JollyDateField 
+            label="Birthday" 
+            value={birthday}
+            onChange={setBirthday} 
+            isRequired 
+            className="mb-3"
+            granularity="day"
           />
-        </div>
+          {/* Continue Button */}
+          <Button type="button" className="w-full" onClick={onNextStep} disabled={isLoading}>
+            Continue
+          </Button>
+        </>
       )}
-      <div className="mb-3">
-        <label
-          htmlFor="email-input"
-          className="mb-1.5 block text-zinc-500 dark:text-zinc-400"
-        >
-          Email
-        </label>
-        <input
-          id="email-input"
-          type="email"
-          placeholder="your.email@provider.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="w-full rounded-md border border-zinc-300 dark:border-zinc-700
-          bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-800 dark:text-zinc-200
-          placeholder-zinc-400 dark:placeholder-zinc-500
-          ring-1 ring-transparent transition-shadow focus:outline-0 focus:ring-[#ad4f11]"
-          disabled={isLoading}
-        />
-      </div>
-      <div className="mb-3">
-        <div className="mb-1.5 flex items-end justify-between">
-          <label
-            htmlFor="password-input"
-            className="block text-zinc-500 dark:text-zinc-400"
-          >
-            Password
-          </label>
-          {!isSignUp && (
-             <a href="#" className="text-sm text-[#ad4f11] dark:text-[#ad4f11] hover:underline">
-               Forgot?
-             </a>
-          )}
-        </div>
-        <input
-          id="password-input"
-          type="password"
-          placeholder="••••••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={isSignUp ? 8 : undefined}
-          className="w-full rounded-md border border-zinc-300 dark:border-zinc-700
-          bg-white dark:bg-zinc-900 px-3 py-2 text-zinc-800 dark:text-zinc-200
-          placeholder-zinc-400 dark:placeholder-zinc-500
-          ring-1 ring-transparent transition-shadow focus:outline-0 focus:ring-[#ad4f11]"
-          disabled={isLoading}
-        />
-      </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? 'Processing...' : (isSignUp ? 'Sign up' : 'Sign in')}
-      </Button>
+
+      {step === 2 && (
+        <>
+          {/* Email Input */}
+           <div className="mb-3">
+             <Label htmlFor="email-input">Email</Label>
+             <input
+               id="email-input"
+               type="email"
+               placeholder="your.email@provider.com"
+               value={email}
+               onChange={(e) => setEmail(e.target.value)}
+               required
+               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+               disabled={isLoading}
+             />
+           </div>
+          {/* Password Input */}
+          <div className="mb-3">
+             <Label htmlFor="password-input">Password</Label>
+             <input
+               id="password-input"
+               type="password"
+               placeholder="••••••••••••"
+               value={password}
+               onChange={(e) => setPassword(e.target.value)}
+               required
+               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+               disabled={isLoading}
+             />
+           </div>
+          {/* Create Account Button */}
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Creating Account..." : "Create Account"}
+          </Button>
+        </>
+      )}
     </form>
   )
 }
 
-// NOTE: The SocialButtons, SocialButton, and Divider components are now unused
-// and could be removed entirely if desired, but are left here for now.
-/*
-const SocialButtons: React.FC = () => (...)
-const SocialButton: React.FC<...> = ({ icon, fullWidth, children }) => (...)
-const Divider: React.FC = () => (...)
-*/
-
-interface TermsAndConditionsProps {
-  isSignUp: boolean;
-}
-
-const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({ isSignUp }) => (
-  <div className="mt-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
-    By {isSignUp ? "signing up" : "signing in"}, you agree to our <br />
-    <Link href="/terms" className="text-[#ad4f11] dark:text-[#ad4f11] hover:underline">
-      Terms
-    </Link> and <Link href="/privacy" className="text-[#ad4f11] dark:text-[#ad4f11] hover:underline">
+// --- TERMS & CONDITIONS --- (Removed props)
+const TermsAndConditions: React.FC = () => (
+  <p className="mt-8 text-center text-xs text-zinc-400 dark:text-zinc-500">
+    By signing up, you agree to our{" "}
+    <Link className="text-[#ad4f11] dark:text-[#ad4f11] hover:underline" href="/terms">
+      Terms & Conditions
+    </Link>{/* Updated link */}
+    {" "}and{" "}
+    <Link className="text-[#ad4f11] dark:text-[#ad4f11] hover:underline" href="/privacy">
       Privacy Policy
-    </Link>.
-  </div>
+    </Link>{/* Updated link */}.
+  </p>
 )
 
 const BackgroundDecoration: React.FC = () => {

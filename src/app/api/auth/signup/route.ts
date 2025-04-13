@@ -11,9 +11,11 @@ export async function POST(req: NextRequest) {
   let userId: ObjectId | null = null; // To store the new user ID for tracking
 
   try {
-    const { name, email, password } = await req.json();
+    // Destructure new fields from request body
+    const { firstName, lastName, birthday, email, password } = await req.json();
 
-    if (!name || !email || !password) {
+    // Update validation
+    if (!firstName || !lastName || !birthday || !email || !password) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
@@ -30,24 +32,28 @@ export async function POST(req: NextRequest) {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Insert new user
+    // Insert new user with all fields
     const result = await usersCollection.insertOne({
-      name,
+      firstName,
+      lastName,
       email,
+      birthday, // Store birthday (consider converting to Date object if needed)
       password: hashedPassword,
       createdAt: new Date(), // Add createdAt timestamp
       // Initialize other fields if necessary
       lastLoginAt: null,
       lastActiveAt: null,
+      // Keep 'name' for compatibility with NextAuth User type default, or adjust type augmentation
+      name: `${firstName} ${lastName}` 
     });
 
     userId = result.insertedId; // Capture the inserted ID
 
-    // Track successful signup
+    // Track successful signup with more data if desired
     trackEvent({
-        userId: userId, // Use the newly created ID
+        userId: userId,
         eventType: 'signup',
-        eventData: { email: email }, // Include email or other relevant signup data
+        eventData: { email }, // Keep email for tracking
         ...requestDetails
     });
 
