@@ -32,7 +32,7 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => {
+      authorized: () => {
         // This callback is used by `withAuth` to determine if the basic
         // authentication check passes. We return true to always run the middleware function,
         // allowing us to handle redirects and public pages within the function itself.
