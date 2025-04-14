@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useState } from "react"
-import { Box } from "lucide-react"
+import Image from "next/image"; // Add Image import
 // Removed commented out social icons
 import { motion } from "framer-motion"
 import { useTheme } from "next-themes"
@@ -219,7 +219,7 @@ const AuthForm: React.FC = () => {
 
 const Logo: React.FC = () => (
   <div className="mb-6 flex items-center justify-center">
-    <Box size={32} className="mr-2 text-[#ad4f11]" /> 
+    <Image src="/logo.png" alt="AI Garden Logo" width={32} height={32} className="mr-2" />
     <span className="text-xl font-bold text-zinc-800 dark:text-zinc-200">AI Garden</span>
   </div>
 )

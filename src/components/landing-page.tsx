@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
 import { GradientButton } from "@/components/ui/gradient-button";
-import { Box } from "lucide-react"; // Keep Box for main logo
+import Image from "next/image";
 // Import Lobe Icons
 import { 
     Grok, 
@@ -44,8 +44,8 @@ const Icons = {
   anthropic: () => <Anthropic size={24} />, 
   meta: () => <Meta size={24} />, 
   deepseek: () => <DeepSeek size={24} />,
-  // Central Logo - Still using Box, or replace with a Lobe Icon if appropriate
-  aiGarden: () => <Box size={32} className="text-[#ad4f11]" />, 
+  // Central Logo - Increase size
+  aiGarden: () => <Image src="/logo.png" alt="AI Garden Logo" width={48} height={48} />, // Increased from 32x32
 };
 
 function AnimatedBeamSection() {
@@ -74,7 +74,8 @@ function AnimatedBeamSection() {
         {/* Middle Row */}
         <div className="flex flex-row items-center justify-between">
           <Circle ref={refOpenAI}><Icons.openai /></Circle>
-          <Circle ref={refCenter} className="size-16 border-[#ad4f11]">
+          {/* Increase size of the central circle */}
+          <Circle ref={refCenter} className="size-20 border-[#ad4f11]"> {/* Increased from size-16 */}
             <Icons.aiGarden />
           </Circle>
           <Circle ref={refAnthropic}><Icons.anthropic /></Circle>
@@ -114,7 +115,8 @@ export function LandingPageComponent() {
             <div className="mb-10 flex flex-col items-center justify-center text-center">
                 {/* Logo and Main Title Row */}
                 <div className="flex items-center justify-center">
-                    <Box size={48} className="mr-3 text-[#ad4f11]" /> 
+                    {/* Increase size of the title logo */}
+                    <Image src="/logo.png" alt="AI Garden Logo" width={64} height={64} className="mr-3" /> {/* Increased from 48x48 */}
                     <h1 className="text-5xl font-bold text-zinc-800 dark:text-zinc-200 tracking-tight">
                         AI GARDEN
                     </h1>

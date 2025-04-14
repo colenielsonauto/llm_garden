@@ -15,6 +15,7 @@ import React, {
   useRef,
   useState,
 } from "react"
+import { GlowEffect } from "./glow-effect"
 
 type PromptInputContextType = {
   isLoading: boolean
@@ -62,6 +63,8 @@ function PromptInput({
   children,
 }: PromptInputProps) {
   const [internalValue, setInternalValue] = useState(value || "")
+  
+  console.log("[PromptInput] isLoading:", isLoading);
 
   const handleChange = (newValue: string) => {
     setInternalValue(newValue)
@@ -81,10 +84,17 @@ function PromptInput({
       >
         <div
           className={cn(
-            "border-input bg-background rounded-3xl border p-2 shadow-xs",
+            "relative border-input bg-background rounded-3xl border p-2 shadow-xs",
             className
           )}
         >
+          {isLoading && (
+            <GlowEffect
+              className="z-[-10]"
+              mode="breathe"
+              blur="medium"
+            />
+          )}
           {children}
         </div>
       </PromptInputContext.Provider>
@@ -102,7 +112,7 @@ function PromptInputTextarea({
   disableAutosize = false,
   ...props
 }: PromptInputTextareaProps) {
-  const { value, setValue, maxHeight, onSubmit, disabled } = usePromptInput()
+  const { value, setValue, maxHeight, onSubmit, disabled, isLoading } = usePromptInput()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -135,7 +145,7 @@ function PromptInputTextarea({
         className
       )}
       rows={1}
-      disabled={disabled}
+      disabled={disabled || isLoading}
       {...props}
     />
   )
@@ -169,11 +179,11 @@ function PromptInputAction({
   side = "top",
   ...props
 }: PromptInputActionProps) {
-  const { disabled } = usePromptInput()
+  const { disabled, isLoading } = usePromptInput()
 
   return (
     <Tooltip {...props}>
-      <TooltipTrigger asChild disabled={disabled}>
+      <TooltipTrigger asChild disabled={disabled || isLoading}>
         {children}
       </TooltipTrigger>
       <TooltipContent side={side} className={className}>

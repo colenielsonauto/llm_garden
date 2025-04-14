@@ -48,7 +48,7 @@ const Logo = () => {
       href="/"
       className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
     >
-      <Box className="h-5 w-5 text-[#ad4f11] dark:text-[#ad4f11] flex-shrink-0" />
+      <Image src="/logo.png" alt="AI Garden Logo" width={20} height={20} className="h-5 w-5 flex-shrink-0" />
       <motion.span
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -66,7 +66,7 @@ const LogoIcon = () => {
       href="/"
       className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
     >
-      <Box className="h-5 w-5 text-[#ad4f11] dark:text-[#ad4f11] flex-shrink-0" />
+      <Image src="/logo.png" alt="AI Garden Logo Icon" width={20} height={20} className="h-5 w-5 flex-shrink-0" />
     </Link>
   );
 };
@@ -218,21 +218,25 @@ export default function ChatPage() {
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // **CHECK AUTH STATUS HERE**
     if (status !== 'authenticated') {
-      // If not authenticated, redirect to login page
-      router.push('/login'); // Or use signIn() directly if preferred
-      return; // Stop further execution
-    }
-
-    // Proceed with chat submission if authenticated
-    if (!selectedLlm) {
-      console.error("Please select a language model first.");
-      // Optionally show a user-facing error/tooltip
+      router.push('/login');
       return;
     }
+
+    // Determine the model ID to use, defaulting to GPT-4o if none is selected
+    const modelToUse = selectedLlm ?? LLM_MODELS.GPT_4O; 
+    const modelIdToUse = modelToUse.id;
+
     if (input.trim() || files.length > 0) {
-      handleChatSubmit(e); // Call the original useChat submit handler
+      // If no model was selected, update the state to reflect the default choice *before* submitting
+      if (!selectedLlm) {
+        setSelectedLlm(modelToUse);
+      }
+      
+      // Pass the determined model ID and search status in the body of the options
+      handleChatSubmit(e, { body: { model: modelIdToUse, useWebSearch: showSearch } });
+    } else {
+      console.log("Submission prevented: No input and no files.");
     }
   };
 
@@ -360,7 +364,19 @@ const Dashboard = ({
   };
 
   return (
-    <div className="flex flex-1 relative"> {/* Added relative for potential absolute positioning inside */}
+    <div className="flex flex-1 relative"> {/* Parent for absolute positioning */}
+      {/* Absolutely Positioned Model Name (only when messages exist) */}
+      {messages.length > 0 && (
+        <div className="absolute top-4 left-4 pointer-events-none z-10"> 
+          <TextShimmer
+            duration={1.2}
+            className='text-2xl font-medium [--base-color:#ad4f11] [--base-gradient-color:#d9804a] dark:[--base-color:#ad4f11] dark:[--base-gradient-color:#d9804a]'
+          >
+            {selectedLlm?.name ?? ''} 
+          </TextShimmer>
+        </div>
+      )}
+
       <div className="flex flex-col flex-1 w-full h-full p-6 sm:p-12 pb-20 bg-background">
         {/* Header Area within Dashboard */}
         <div className="absolute top-4 right-4 flex items-center space-x-2 z-20"> {/* Keep theme toggle top right */}
@@ -370,27 +386,27 @@ const Dashboard = ({
         {/* Main content area: flex column, grows, allows shrinking */}
         <div className="flex flex-col flex-grow min-h-0">
 
-          {/* Conditional Rendering: Centered Text or Messages */}
+          {/* Conditional Rendering based on messages */}
           {messages.length === 0 ? (
+            // State 1: No messages -> Center the text block
             <div className="flex flex-col flex-grow items-center justify-center pointer-events-none">
-              {/* Centered Welcome/Model Text Block */}
               <TextShimmer
                 duration={1.2}
                 className='text-2xl font-medium text-center [--base-color:#ad4f11] [--base-gradient-color:#d9804a] dark:[--base-color:#ad4f11] dark:[--base-gradient-color:#d9804a]'
               >
                 {selectedLlm ? selectedLlm.name : "Welcome to your AI Garden"}
               </TextShimmer>
-              {/* Beta Tag - Conditionally rendered below shimmer */}
+              {/* Beta Tag - Show if no model selected initially */}
               { !selectedLlm && (
-                 <span className="mt-2 text-sm font-medium text-[#ad4f11] border border-[#ad4f11] rounded-md px-2 py-0.5 pointer-events-auto"> {/* Added pointer-events-auto */}
+                 <span className="mt-2 text-sm font-medium text-[#ad4f11] border border-[#ad4f11] rounded-md px-2 py-0.5 pointer-events-auto">
                    Beta
                  </span>
               )}
             </div>
           ) : (
-            /* Messages Area - Renders normally when messages exist */
-            <div className="w-full max-w-4xl overflow-y-auto mb-4 space-y-4 pr-4 self-center"> {/* Messages start top, scrollable */}
-              {messages.map((m: Message) => ( // Explicitly type 'm'
+            // State 2: Messages exist -> Render only the message list here
+            <div className="w-full max-w-4xl overflow-y-auto space-y-4 pr-4 self-center flex-grow min-h-0 pt-10"> 
+              {messages.map((m: Message) => (
                 <div
                   key={m.id}
                   className={cn(
@@ -561,49 +577,40 @@ const Dashboard = ({
                         }}>
                           <DropdownMenuTrigger asChild disabled={isLoading}>
                             <MotionButton
-                              key={selectedLlm ? selectedLlm.id : "no-model"} // Add key for re-animation
+                              key={selectedLlm ? selectedLlm.id : "no-model"}
                               variant="ghost"
-                              size={isModelSelectorActive ? "default" : "icon"} // Change size based on state
+                              size="icon"
                               className={cn(
-                                "relative flex items-center gap-2 overflow-hidden rounded-full border transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                                isModelSelectorActive
-                                  ? "h-8 border-[#ad4f11] bg-[#ad4f11]/10 px-1.5 py-1 text-[#ad4f11]"
-                                  : "h-8 w-8 border-transparent bg-secondary p-0 text-secondary-foreground hover:bg-muted",
-                                !selectedLlm && // Apply background animation only if no model selected
-                                  "bg-[length:200%_100%] bg-clip-padding [--base-color:#ad4f11] [--base-gradient-color:#ad4f11] dark:[--base-color:#ad4f11] dark:[--base-gradient-color:#ad4f11] [--bg:linear-gradient(90deg,transparent_40%,var(--base-gradient-color),transparent_60%)] [background-image:var(--bg),linear-gradient(var(--base-color),var(--base-color)) ]"
+                                // Base styles
+                                "relative flex h-8 items-center gap-2 rounded-full border transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                                // Active state OR Default unselected state -> Apply active styles + matching hover styles
+                                (isModelSelectorActive || (!selectedLlm && !isModelSelectorActive)) && 
+                                  "w-auto px-1.5 py-1 border-[#ad4f11] bg-[#ad4f11]/10 text-[#ad4f11] hover:bg-[#ad4f11]/10 hover:text-[#ad4f11] overflow-hidden",
+                                // Icon-only state (model selected, dropdown open)
+                                !isModelSelectorActive && (selectedLlm && !isModelSelectorActive) &&
+                                  "w-8 p-0 border-transparent bg-secondary text-secondary-foreground hover:bg-muted overflow-hidden"
                               )}
-                              animate={!selectedLlm ? {
-                                backgroundPosition: ["150% center", "-50% center"],
-                              }: {}}
-                              transition={!selectedLlm ? {
-                                repeat: Infinity,
-                                duration: 1.2,
-                                ease: "linear",
-                              }: {}}
-                              disabled={isLoading}
                             >
-                              <div className="flex h-5 w-5 items-center justify-center"> {/* Container for icon */}
+                              {/* Use original structure for content */}
+                              <div className="flex h-5 w-5 items-center justify-center flex-shrink-0">
                                 <motion.div
-                                  animate={{ scale: isModelSelectorActive ? 1.1 : 1 }} // Simple scale pulse when active
+                                  animate={{ scale: isModelSelectorActive ? 1.1 : 1 }} // Scale only when truly active
                                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                                 >
-                                  <Box
-                                    size={20}
-                                    strokeWidth={1.5}
-                                    className={cn(isModelSelectorActive ? "text-[#ad4f11]" : "text-[#ad4f11]")}
-                                  />
+                                  <Box size={20} strokeWidth={1.5} className="currentColor" />
                                 </motion.div>
                               </div>
                               <AnimatePresence>
-                                {isModelSelectorActive && (
+                                {/* Show text if active OR default unselected */}
+                                {(isModelSelectorActive || (!selectedLlm && !isModelSelectorActive)) && (
                                   <motion.span
                                     initial={{ width: 0, opacity: 0 }}
                                     animate={{ width: "auto", opacity: 1 }}
                                     exit={{ width: 0, opacity: 0 }}
                                     transition={{ duration: 0.2 }}
-                                    className="overflow-hidden whitespace-nowrap text-sm text-[#ad4f11]"
+                                    className="overflow-hidden whitespace-nowrap text-sm currentColor"
                                   >
-                                    {selectedLlm && selectedLlm.name}
+                                    {selectedLlm ? selectedLlm.name : "Select Your Model"}
                                   </motion.span>
                                 )}
                               </AnimatePresence>
@@ -635,12 +642,11 @@ const Dashboard = ({
                           initial={{ opacity: 1 }}
                           animate={{ opacity: showNewModelIndicator ? 1 : 0 }}
                           transition={{ duration: 0.3 }}
-                          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 overflow-hidden rounded-md border bg-[#ad4f11] px-3 py-1.5 text-xs text-white dark:text-white shadow-md"
-                          style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }} // Prevent interaction & wrapping
+                          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 overflow-hidden rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground shadow-md"
+                          style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
                         >
                           New Tool
-                          {/* Adjusted Arrow: Increased size slightly, ensured positioning */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-[#ad4f11]" data-arrow="model"></div>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-background" style={{ filter: 'drop-shadow(0 1px 0 oklch(var(--border) / 0.5))' }}></div>
                         </motion.div>
                       )}
                     </div>
@@ -656,7 +662,7 @@ const Dashboard = ({
                      variant="default"
                      size="icon"
                      className="h-8 w-8 rounded-full"
-                     disabled={status !== 'authenticated' || isLoading || (!input?.trim() && files.length === 0) || !selectedLlm}
+                     disabled={status !== 'authenticated' || isLoading || (!input?.trim() && files.length === 0)}
                    >
                      {isLoading ? (
                        <Square className="size-5 animate-pulse fill-current" />

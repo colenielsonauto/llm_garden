@@ -76,6 +76,8 @@
   --sidebar-accent-foreground: oklch(0.216 0.006 56.043);
   --sidebar-border: oklch(0.923 0.003 48.717);
   --sidebar-ring: oklch(0.709 0.01 56.259);
+  --font-space-grotesk: "Space Grotesk", var(--font-sans);
+  --font-dm-sans: "DM Sans", var(--font-sans);
 }
 
 .dark {
@@ -118,6 +120,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-dm-sans);
   }
 }
 
@@ -327,5 +330,40 @@
     --border-color-1: hsla(320, 75%, 90%, 0.2);
     --border-color-2: hsla(320, 50%, 90%, 0.75);
   }
+
+  .font-heading {
+    font-family: var(--font-space-grotesk);
+  }
+
+  .font-button-label {
+    font-family: "Satoshi", var(--font-sans);
+    @apply uppercase tracking-wider;
+  }
 }
+
 /* --- Gradient Button Styles End --- */
+
+/* --- @font-face for Satoshi (Placeholder - needs actual font files) --- */
+/*
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+*/
