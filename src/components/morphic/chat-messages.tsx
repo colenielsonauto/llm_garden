@@ -1,104 +1,140 @@
-import { Message } from 'ai/react' // Use ai/react Message type, removed JSONValue
-import { useEffect, /*useMemo,*/ useRef, /*useState*/ } from 'react' // Commented out unused imports
+import { JSONValue, Message } from 'ai'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { RenderMessage } from './render-message'
-// import { ToolSection } from './tool-section' // Commented out: Depends on @ai-sdk/react data structure
-import { Spinner } from './ui/spinner' // Corrected path
-import { cn } from '@/lib/utils' // Import cn
+import { ToolSection } from './tool-section'
+import { Spinner } from './ui/spinner'
 
 interface ChatMessagesProps {
   messages: Message[]
-  // data: JSONValue[] | undefined // Commented out: Not available from ai/react useChat
-  // onQuerySelect: (query: string) => void // Commented out: Handled differently or not needed?
+  data: JSONValue[] | undefined
+  onQuerySelect: (query: string) => void
   isLoading: boolean
-  // chatId?: string // Commented out: Not directly used in adapted version?
-  // addToolResult?: (params: { toolCallId: string; result: any }) => void // Commented out: Specific to @ai-sdk/react
+  chatId?: string
+  addToolResult?: (params: { toolCallId: string; result: any }) => void
 }
 
 export function ChatMessages({
   messages,
-  // data, // Commented out
-  // onQuerySelect, // Commented out
+  data,
+  onQuerySelect,
   isLoading,
-  // chatId, // Commented out
-  // addToolResult // Commented out
+  chatId,
+  addToolResult
 }: ChatMessagesProps) {
-  // const [openStates, setOpenStates] = useState<Record<string, boolean>>({}) // Commented out: Related to collapsible sections based on @ai-sdk/react data
-  // const manualToolCallId = 'manual-tool-call' // Commented out
+  const [openStates, setOpenStates] = useState<Record<string, boolean>>({})
+  const manualToolCallId = 'manual-tool-call'
 
+  // Add ref for the messages container
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Scroll to bottom function
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
       behavior: messages.length > 5 ? 'instant' : 'smooth'
     })
   }
 
+  // Scroll to bottom on mount and when messages change or during streaming
   useEffect(() => {
     scrollToBottom()
+
+    // Set up interval for continuous scrolling during streaming
     let intervalId: ReturnType<typeof setInterval> | undefined
-    // Simplified loading check for scroll
-    if (isLoading && messages.length > 0 && messages[messages.length - 1]?.role !== 'assistant') {
+
+    if (isLoading && messages[messages.length - 1]?.role === 'user') {
       intervalId = setInterval(scrollToBottom, 100)
     }
+
     return () => {
       if (intervalId) clearInterval(intervalId)
     }
   }, [messages.length, isLoading, messages])
 
-  // Commenting out state management and logic related to @ai-sdk/react specifics like tool calls, annotations, parts etc.
-  // useEffect(() => {
-  //   const lastMessage = messages[messages.length - 1]
-  //   if (lastMessage?.role === 'user') {
-  //     setOpenStates({ [manualToolCallId]: true })
-  //   }
-  // }, [messages])
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role === 'user') {
+      setOpenStates({ [manualToolCallId]: true })
+    }
+  }, [messages])
 
-  // const lastToolData = useMemo(() => {
-  //   // ... logic dependent on data structure from @ai-sdk/react
-  // }, [data])
+  // get last tool data for manual tool call
+  const lastToolData = useMemo(() => {
+    if (!data || !Array.isArray(data) || data.length === 0) return null
 
-  if (!messages || messages.length === 0) return null
+    const lastItem = data[data.length - 1] as {
+      type: 'tool_call'
+      data: {
+        toolCallId: string
+        state: 'call' | 'result'
+        toolName: string
+        args: string
+      }
+    }
 
-  // const lastUserIndex = messages.length - 1 - [...messages].reverse().findIndex(msg => msg.role === 'user') // Commented out: Used for open state logic
+    if (lastItem.type !== 'tool_call') return null
 
-  // Simplified loading: Show spinner if isLoading is true and last message isn't from assistant
-  const showLoading = isLoading && messages.length > 0 && messages[messages.length - 1]?.role !== 'assistant'
+    const toolData = lastItem.data
+    return {
+      state: 'call' as const,
+      toolCallId: toolData.toolCallId,
+      toolName: toolData.toolName,
+      args: toolData.args ? JSON.parse(toolData.args) : undefined
+    }
+  }, [data])
 
-  // Commented out state accessors
-  // const getIsOpen = (id: string) => {
-  //   // ... logic dependent on openStates and message structure
-  // }
-  // const handleOpenChange = (id: string, open: boolean) => {
-  //   setOpenStates(prev => ({ ...prev, [id]: open }))
-  // }
+  if (!messages.length) return null
+
+  const lastUserIndex =
+    messages.length -
+    1 -
+    [...messages].reverse().findIndex(msg => msg.role === 'user')
+
+  const showLoading = isLoading && messages[messages.length - 1].role === 'user'
+
+  const getIsOpen = (id: string) => {
+    if (id.includes('call')) {
+      return openStates[id] ?? true
+    }
+    const baseId = id.endsWith('-related') ? id.slice(0, -8) : id
+    const index = messages.findIndex(msg => msg.id === baseId)
+    return openStates[id] ?? index >= lastUserIndex
+  }
+
+  const handleOpenChange = (id: string, open: boolean) => {
+    setOpenStates(prev => ({
+      ...prev,
+      [id]: open
+    }))
+  }
 
   return (
     <div className="relative mx-auto px-4 w-full">
       {messages.map(message => (
-        <div 
-          key={message.id} 
-          className={cn(
-            "mb-4 flex flex-col gap-4", // Existing classes
-            message.role === 'user' ? 'items-end' : 'items-start' // Apply alignment
-          )}
-        >
+        <div key={message.id} className="mb-4 flex flex-col gap-4">
           <RenderMessage
             message={message}
-            // Pass simplified props based on ai/react
-            // messageId={message.id}
-            // getIsOpen={() => true} // Always open for now
-            // onOpenChange={() => {}} // No-op for now
-            // onQuerySelect={onQuerySelect} // Pass if needed by child
-            // chatId={chatId}
-            // addToolResult={addToolResult}
+            messageId={message.id}
+            getIsOpen={getIsOpen}
+            onOpenChange={handleOpenChange}
+            onQuerySelect={onQuerySelect}
+            chatId={chatId}
+            addToolResult={addToolResult}
           />
         </div>
       ))}
-      {showLoading && (
-        // Simply show spinner if loading, removed tool logic
-        <Spinner />
-      )}
-      <div ref={messagesEndRef} />
+      {showLoading &&
+        (lastToolData ? (
+          <ToolSection
+            key={manualToolCallId}
+            tool={lastToolData}
+            isOpen={getIsOpen(manualToolCallId)}
+            onOpenChange={open => handleOpenChange(manualToolCallId, open)}
+            addToolResult={addToolResult}
+          />
+        ) : (
+          <Spinner />
+        ))}
+      <div ref={messagesEndRef} /> {/* Add empty div as scroll anchor */}
     </div>
   )
-} 
+}
