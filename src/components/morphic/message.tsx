@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import rehypeExternalLinks from 'rehype-external-links'
-import { CodeRenderer } from './ui/codeblock'
+import { CodeBlock } from './ui/codeblock'
 import 'katex/dist/katex.min.css'
 import { cn } from '@/lib/utils'
 
@@ -37,7 +37,7 @@ export function BotMessage({
                 {children}
               </code>
             ) : (
-              <CodeRenderer
+              <CodeBlock
                 codeString={String(children).trim()}
                 language={(className || '').replace('language-', '')}
               />
