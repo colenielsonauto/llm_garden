@@ -31,17 +31,35 @@ export function BotMessage({
           rehypeKatex,
         ]}
         components={{
-          code: ({ inline, className, children, ...props }) =>
-            inline ? (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            ) : (
+          code: ({ inline, className, children, ...props }) => {
+            const content = String(children).trim()
+
+            // Animated cursor placeholder
+            if (!inline && content === '▍') {
+              return (
+                <span className="mt-1 cursor-default animate-pulse">
+                  ▍
+                </span>
+              )
+            }
+
+            // Inline code
+            if (inline) {
+              return (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              )
+            }
+
+            // Fenced code block
+            return (
               <CodeBlock
-                codeString={String(children).trim()}
+                codeString={content}
                 language={(className || '').replace('language-', '')}
               />
-            ),
+            )
+          },
         }}
       >
         {message}
