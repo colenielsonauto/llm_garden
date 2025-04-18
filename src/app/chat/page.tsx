@@ -28,6 +28,7 @@ import remarkGfm from 'remark-gfm';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from "next-auth/react";
 import { AvatarWithInitials } from '@/components/ui/avatar-initials';
+import { ChatMessages } from '@/components/morphic/chat-messages'
 
 // Define LLM models
 const LLM_MODELS = {
@@ -404,40 +405,8 @@ const Dashboard = ({
               )}
             </div>
           ) : (
-            // State 2: Messages exist -> Render only the message list here
-            <div className="w-full max-w-4xl overflow-y-auto space-y-4 pr-4 self-center flex-grow min-h-0 pt-10"> 
-              {messages.map((m: Message) => (
-                <div
-                  key={m.id}
-                  className={cn(
-                    "flex",
-                    m.role === "user" ? "justify-end" : "justify-start"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "rounded-lg px-4 py-2 max-w-[80%] prose dark:prose-invert",
-                      m.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground"
-                    )}
-                  >
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {m.content}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              ))}
-              {/* API Error Display */}
-              {error && (
-                <div className="flex justify-start">
-                  <div className="rounded-lg px-4 py-2 max-w-[80%] bg-destructive text-destructive-foreground">
-                    <p className="text-sm whitespace-pre-wrap">Error: <ReactMarkdown remarkPlugins={[remarkGfm]}>{error.message}</ReactMarkdown></p>
-                  </div>
-                </div>
-              )}
-               <div ref={messagesEndRef} /> {/* Scroll target */}
-            </div>
+            // State 2: Messages exist -> Render using ChatMessages
+            <ChatMessages messages={messages} isLoading={isLoading} />
           )}
 
           {/* Input Form - Always at the bottom */} 
